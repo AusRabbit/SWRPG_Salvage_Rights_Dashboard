@@ -1,142 +1,105 @@
 {
-  "campaign": "The Emperor's Expendables",
+  "campaign": "Salvage Rights",
   "characters": [
     {
-      "name": "Eleena Daru",
-      "liveId": "eleena",
-      "career": "Provisional Smuggler — Thief/Scoundrel",
-      "species": "Twi'lek",
-      "updated": "2026-07-29T00:00:00Z",
+      "name": "Kess Varyn",
+      "career": "Explorer — Former Professor",
+      "species": "",
+      "updated": "2026-07-10T00:00:00Z",
       "vitals": {
-        "wounds": { "current": 8, "threshold": 10 },
-        "strain": { "current": 0, "threshold": 14 },
-        "soak": 1,
-        "criticalInjuries": []
-      },
-      "destiny": { "light": 2, "dark": 2 },
-      "xp": { "available": 10, "total": 5 },
-      "credits": 0,
-      "inventory": [
-        { "name": "Forged surveying/outfitter permits", "note": "currently in an ID-sweep officer's hands, flagged" },
-        { "name": "Cover-appropriate gear only", "note": "personal effects (code cylinder, medkit, etc.) not itemized for Mission 02 — Vorn's team controls the loadout" }
-      ],
-      "motivationObligation": {
-        "motivation": "Survive and stay ahead of everyone else's plans for her",
-        "obligation": { "type": "Imperial Sentence / Criminal", "value": 10, "note": "Provisional penal asset" }
-      },
-      "characteristics": { "brawn": 1, "agility": 3, "intellect": 2, "cunning": 3, "willpower": 2, "presence": 4 },
-      "skills": [
-        { "name": "Charm", "rank": 2, "career": true },
-        { "name": "Cool", "rank": 1, "career": false },
-        { "name": "Coordination", "rank": 1, "career": true },
-        { "name": "Deception", "rank": 2, "career": true },
-        { "name": "Perception", "rank": 1, "career": false },
-        { "name": "Ranged: Light", "rank": 2, "career": false },
-        { "name": "Skulduggery", "rank": 2, "career": true },
-        { "name": "Stealth", "rank": 2, "career": true },
-        { "name": "Streetwise", "rank": 1, "career": true }
-      ],
-      "talents": [
-        { "name": "Smooth Talker (Deception)", "rank": 1, "tier": 1, "description": "When making Deception checks, spend Triumph to gain additional Successes equal to ranks." },
-        { "name": "Hidden Storage", "rank": 1, "tier": 1, "description": "Gain hidden storage in vehicles or equipment with total encumbrance equal to ranks." },
-        { "name": "Quick Draw", "rank": 1, "tier": 1, "description": "Once per round, draw or holster an easily accessible weapon/item as an incidental; reduces Prepare rating by 1 to minimum 1." },
-        { "name": "Deep Pockets", "rank": 1, "tier": 1, "description": "Once per session, produce a small narratively useful item from pockets/bag; generally under 100 credits and encumbrance 0–1, subject to GM approval." },
-        { "name": "Stalker", "rank": 1, "tier": 2, "description": "Add Boost per rank to Stealth and Coordination checks." }
-      ],
-      "weapons": [],
-      "armor": { "name": "None currently worn", "soakBonus": 0, "defenseBonus": 0 }
-    },
-    {
-      "name": "Kennaud \"Kenno\" Thorn",
-      "liveId": "kenno",
-      "career": "Provisional Hired Gun — Mercenary Soldier",
-      "species": "Human",
-      "updated": "2026-07-29T00:00:00Z",
-      "vitals": {
-        "wounds": { "current": 8, "threshold": 14 },
-        "strain": { "current": 0, "threshold": 13 },
+        "wounds": { "current": 0, "threshold": 12 },
+        "strain": { "current": 0, "threshold": 11 },
         "soak": 3,
         "criticalInjuries": []
       },
-      "destiny": { "light": 2, "dark": 2 },
-      "xp": { "available": 5, "total": 5 },
+      "destiny": { "light": 1, "dark": 2 },
+      "xp": { "available": 5, "total": 0 },
       "credits": 0,
       "inventory": [
-        { "name": "Cover-appropriate gear only", "note": "personal effects not itemized for Mission 02 — Vorn's team controls the loadout" }
+        { "name": "Party credit pool (shared)", "note": "35,000cr from the Long Wake sale; allocation unverified" },
+        { "name": "Blaster Pistol" },
+        { "name": "Captured Cygnus Carbine" },
+        { "name": "Mechanic toolkit, portable scanner, utility harness" },
+        { "name": "Cygnus berth clearance tag" }
       ],
       "motivationObligation": {
-        "motivation": "Prove he's a soldier making hard choices, not the weapon Vorn wants",
-        "obligation": { "type": "Betrayal / Imperial Sentence", "value": 10, "note": "Provisional penal asset" }
+        "motivation": "Drawn to dangerous knowledge and technology, tempered by mission discipline and Sel's steadying presence"
       },
-      "characteristics": { "brawn": 3, "agility": 3, "intellect": 2, "cunning": 2, "willpower": 3, "presence": 2 },
+      "characteristics": { "brawn": 2, "agility": 3, "intellect": 4, "cunning": 2, "willpower": 2, "presence": 2 },
       "skills": [
-        { "name": "Athletics", "rank": 1, "career": true },
-        { "name": "Brawl", "rank": 2, "career": true },
-        { "name": "Coercion", "rank": 1, "career": false },
+        { "name": "Astrogation", "rank": 1, "career": true },
+        { "name": "Computers", "rank": 1, "career": true },
+        { "name": "Cool", "rank": 1, "career": false },
         { "name": "Discipline", "rank": 1, "career": true },
-        { "name": "Knowledge: Warfare", "rank": 1, "career": false },
-        { "name": "Melee", "rank": 2, "career": true },
-        { "name": "Perception", "rank": 1, "career": false },
-        { "name": "Ranged: Heavy", "rank": 2, "career": true },
+        { "name": "Knowledge: Education", "rank": 1, "career": false },
+        { "name": "Knowledge: Outer Rim", "rank": 1, "career": true },
+        { "name": "Knowledge: Xenology", "rank": 1, "career": true },
+        { "name": "Mechanics", "rank": 2, "career": true },
+        { "name": "Negotiation", "rank": 1, "career": false },
+        { "name": "Perception", "rank": 1, "career": true },
+        { "name": "Piloting: Space", "rank": 2, "career": true },
+        { "name": "Ranged: Light", "rank": 1, "career": false },
+        { "name": "Skulduggery", "rank": 1, "career": false },
+        { "name": "Streetwise", "rank": 1, "career": true },
+        { "name": "Vigilance", "rank": 1, "career": false }
+      ],
+      "talents": [
+        { "name": "Signature Vehicle", "rank": 1, "tier": 1, "description": "Choose a vehicle you own or have regular access to (the Wayfarer's Debt); upgrade Mechanics checks made on it once." },
+        { "name": "Pride and Joy", "rank": 1, "tier": 2, "description": "Once per session, negate a Critical Hit inflicted upon your signature vehicle." }
+      ],
+      "weapons": [
+        { "name": "Blaster Pistol", "skill": "Ranged: Light", "damage": 6, "crit": 3, "range": "Medium", "special": "—" },
+        { "name": "Captured Cygnus Carbine", "skill": "Ranged: Light", "damage": 9, "crit": 3, "range": "Medium", "special": "Captured Cygnus issue" }
+      ],
+      "armor": { "name": "Heavy Work Jacket", "soakBonus": 1, "defenseBonus": 0 }
+    },
+    {
+      "name": "Carsk Den'Niv",
+      "career": "Hired Gun — Bodyguard",
+      "species": "Bothan",
+      "updated": "2026-07-10T00:00:00Z",
+      "vitals": {
+        "wounds": { "current": 0, "threshold": 13 },
+        "strain": { "current": 0, "threshold": 12 },
+        "soak": 5,
+        "criticalInjuries": []
+      },
+      "destiny": { "light": 1, "dark": 2 },
+      "xp": { "available": 0, "total": 0 },
+      "credits": 0,
+      "inventory": [
+        { "name": "Party credit pool (shared)", "note": "35,000cr from the Long Wake sale; allocation unverified" },
+        { "name": "Comlink and utility belt" },
+        { "name": "Power packs", "note": "one standard reload, one captured Cygnus pack" },
+        { "name": "Maintenance gloves, glowrod, breath mask, utility cutter" },
+        { "name": "Drenn's encrypted bounty puck", "note": "partial Kallax contract/claim data — unexploited" },
+        { "name": "Drenn's comm", "note": "may hold recent Kallax-team communications" }
+      ],
+      "motivationObligation": {
+        "motivation": "Find those responsible for his family's deaths and act against the militant group that killed them",
+        "obligation": { "type": "Obsession", "value": 20, "note": "Triggered this session — the planet's rust-and-dusk colours stir the memory; -2 strain threshold for the session" }
+      },
+      "characteristics": { "brawn": 3, "agility": 3, "intellect": 2, "cunning": 3, "willpower": 3, "presence": 2 },
+      "skills": [
+        { "name": "Athletics", "rank": 2, "career": true },
+        { "name": "Discipline", "rank": 1, "career": true },
+        { "name": "Perception", "rank": 3, "career": true },
+        { "name": "Ranged: Heavy", "rank": 1, "career": true },
+        { "name": "Ranged: Light", "rank": 1, "career": true },
         { "name": "Resilience", "rank": 1, "career": true },
         { "name": "Vigilance", "rank": 1, "career": true }
       ],
       "talents": [
-        { "name": "Toughened", "rank": 1, "tier": 1, "description": "Increase wound threshold by 2 per rank." },
-        { "name": "Grit", "rank": 1, "tier": 1, "description": "Increase strain threshold by 1 per rank." },
-        { "name": "Quick Strike", "rank": 1, "tier": 1, "description": "Add Boost per rank to combat checks against targets that have not acted this encounter." },
-        { "name": "Challenge!", "rank": 1, "tier": 1, "description": "Once per encounter, choose adversaries within short range up to ranks in Challenge!; until encounter ends/incapacitation, those adversaries add Setback when targeting Kenno and an additional Setback when targeting others." },
         { "name": "Rapid Recovery", "rank": 1, "tier": 1, "description": "Heal 1 additional strain per rank when healing strain after an encounter." },
-        { "name": "Painful Blow", "rank": 1, "tier": 1, "description": "May increase combat check difficulty by one; if the target suffers wounds, it suffers 2 strain each time it performs a maneuver until encounter end." },
-        { "name": "Desperate Recovery", "rank": 1, "tier": 1, "description": "Before healing strain after an encounter, if current strain is more than half threshold, heal 2 additional strain." },
-        { "name": "Physical Training", "rank": 1, "tier": 2, "description": "Add Boost per rank to Athletics and Resilience checks." }
+        { "name": "Worlds War Vet", "rank": 1, "tier": 1, "description": "Ranged (Heavy) or Resilience becomes a career skill. Once per session, call in a small favour from current/former military contacts." },
+        { "name": "Bad Cop", "rank": 1, "tier": 2, "description": "Spend ▲▲ on a Coercion or Deception check to upgrade an ally's later social check against the same target during the encounter." }
       ],
-      "weapons": [],
-      "armor": { "name": "None currently worn", "soakBonus": 0, "defenseBonus": 0 }
-    },
-    {
-      "name": "Vesh Talorr",
-      "liveId": "vesh",
-      "career": "Smuggler — Pilot (\"Talon One\")",
-      "species": "Duros",
-      "updated": "2026-07-29T00:00:00Z",
-      "vitals": {
-        "wounds": { "current": 3, "threshold": 12 },
-        "strain": { "current": 0, "threshold": 12 },
-        "soak": 2,
-        "criticalInjuries": []
-      },
-      "destiny": { "light": 2, "dark": 2 },
-      "xp": { "available": 10, "total": 5 },
-      "credits": 0,
-      "inventory": [
-        { "name": "Cover-appropriate gear only", "note": "personal effects (slicer spike, etc.) not itemized for Mission 02 — Vorn's team controls the loadout" }
+      "weapons": [
+        { "name": "Blaster Rifle", "skill": "Ranged: Heavy", "damage": 9, "crit": 3, "range": "Long", "special": "Stun setting" },
+        { "name": "Blaster Pistol", "skill": "Ranged: Light", "damage": 6, "crit": 3, "range": "Medium", "special": "Stun setting" },
+        { "name": "Vibroknife", "skill": "Melee", "damage": 4, "crit": 2, "range": "Engaged", "special": "Pierce 2" }
       ],
-      "motivationObligation": {
-        "motivation": "Build the legend — treat every engagement as another line in his story",
-        "obligation": { "type": "Contract", "value": 10, "note": "Kordyne Security Solutions" }
-      },
-      "characteristics": { "brawn": 2, "agility": 4, "intellect": 3, "cunning": 2, "willpower": 2, "presence": 2 },
-      "skills": [
-        { "name": "Astrogation", "rank": 1, "career": true },
-        { "name": "Cool", "rank": 1, "career": true },
-        { "name": "Coordination", "rank": 1, "career": true },
-        { "name": "Gunnery", "rank": 1, "career": true },
-        { "name": "Perception", "rank": 1, "career": false },
-        { "name": "Piloting: Space", "rank": 2, "career": true },
-        { "name": "Ranged: Light", "rank": 1, "career": false },
-        { "name": "Streetwise", "rank": 1, "career": true }
-      ],
-      "talents": [
-        { "name": "Hand on the Throttle", "rank": 1, "tier": 1, "description": "Once per round while driving/piloting a vehicle, may increase or decrease vehicle speed by 1 within normal limits." },
-        { "name": "Signature Vehicle", "rank": 1, "tier": 1, "description": "Chosen vehicle: Z-95 Headhunter 'Sure Thing.' Upgrades Mechanics checks once when working on it." },
-        { "name": "Smooth Talker", "rank": 1, "tier": 1, "description": "Choose Charm, Coercion, Deception, or Negotiation before first use. Spend Triumph on checks with that skill to gain additional Successes equal to ranks." },
-        { "name": "Shortcut", "rank": 1, "tier": 2, "description": "During a chase, add Boost per rank to checks made to catch or escape an opponent." },
-        { "name": "Unstoppable", "rank": 1, "tier": 2, "description": "If a Critical Injury roll is 1 or reduced to 1, do not receive the critical injury." },
-        { "name": "Trust the Captain", "rank": 1, "tier": 3, "description": "Make a Hard Leadership check. If successful, for the rest of the encounter allies within short range increase their ranks in Discipline by an amount equal to ranks in Trust the Captain." }
-      ],
-      "weapons": [],
-      "armor": { "name": "None currently worn", "soakBonus": 0, "defenseBonus": 0 }
+      "armor": { "name": "Modified Cresh \"Luck\" Armour", "soakBonus": 2, "defenseBonus": 1 }
     }
   ]
 }
