@@ -1,17 +1,26 @@
 import { useState, useEffect, useRef } from "react";
 
 // ---------------------------------------------------------------------------
-// LEDGER DATA
-// Loads from /data/ledger.json (bundled into the build, not fetched from
-// GitHub — your repo stays private). Falls back to demo data if that path
-// doesn't exist (e.g. this preview sandbox).
-// Schema: { campaign, characters: [ {..per-character fields..}, ... ] }
+// Full character/party dashboard (static, bundled ledger.json), with
+// Wounds / Strain / Destiny overlaid live from THIS SAME repo's
+// data/live.json via the GitHub Contents API (works because this repo is
+// public). Matching: each ledger character carries an optional "liveId"
+// field; if it matches a key in live.json's wounds/strain maps, that
+// character's current Wounds/Strain are overridden. Destiny is party-wide.
+// If the live fetch fails or a character has no liveId, everything falls
+// back to the static ledger.json values.
 // ---------------------------------------------------------------------------
+const LIVE_OWNER = "AusRabbit";
+const LIVE_REPO = "SWRPG_Salvage_Rights_Dashboard";
+const LIVE_PATH = "data/live.json";
+const LIVE_POLL_MS = 90_000;
+
 const DEMO_LEDGER = {
   campaign: "Ghosts in Hyperspace",
   characters: [
     {
       name: "Kessa Vantar",
+      liveId: null,
       career: "Smuggler — Pilot",
       species: "Twi'lek",
       updated: "2026-07-29T14:20:00Z",
@@ -19,30 +28,20 @@ const DEMO_LEDGER = {
         wounds: { current: 6, threshold: 14 },
         strain: { current: 9, threshold: 12 },
         soak: 4,
-        criticalInjuries: ["Grazed — minor bleeding (Easy check to stop)"],
+        criticalInjuries: [],
       },
       destiny: { light: 2, dark: 1 },
       xp: { available: 8, total: 45 },
       credits: 1350,
-      inventory: [
-        { name: "Heavy Blaster Pistol", note: "Mod: +1 crit rating" },
-        { name: "Armored Flight Suit", note: "+1 Soak" },
-      ],
+      inventory: [{ name: "Heavy Blaster Pistol", note: "Mod: +1 crit rating" }],
       motivationObligation: {
         motivation: "Freedom — flying her own ship, on her own terms",
         obligation: { type: "Debt", value: 15, note: "Owed to Hylo Bassiro" },
       },
       characteristics: { brawn: 2, agility: 4, intellect: 2, cunning: 3, willpower: 2, presence: 3 },
-      skills: [
-        { name: "Piloting: Space", rank: 3, career: true },
-        { name: "Gunnery", rank: 2, career: true },
-      ],
-      talents: [
-        { name: "Skilled Jockey", rank: 2, tier: 2, description: "Add Boost per rank to Piloting checks when in silhouette 3 or smaller vehicle." },
-      ],
-      weapons: [
-        { name: "Heavy Blaster Pistol", skill: "Ranged: Light", damage: 7, crit: 3, range: "Medium", special: "—" },
-      ],
+      skills: [{ name: "Piloting: Space", rank: 3, career: true }],
+      talents: [{ name: "Skilled Jockey", rank: 2, tier: 2, description: "Add Boost per rank to Piloting checks." }],
+      weapons: [{ name: "Heavy Blaster Pistol", skill: "Ranged: Light", damage: 7, crit: 3, range: "Medium", special: "—" }],
       armor: { name: "Armored Flight Suit", soakBonus: 1, defenseBonus: 0 },
     },
   ],
@@ -52,7 +51,8 @@ const SAMPLE_SCHEMA = `{
   "campaign": "string",
   "characters": [
     {
-      "name": "string", "career": "string", "species": "string",
+      "name": "string", "liveId": "string (optional, matches live.json key)",
+      "career": "string", "species": "string",
       "updated": "ISO 8601 timestamp",
       "vitals": {
         "wounds": { "current": 0, "threshold": 0 },
@@ -179,14 +179,21 @@ function SkillPips({ rank, characteristic }) {
   );
 }
 
-function Stat({ label, children }) {
+function Stat({ label, live, children }) {
   return (
     <div className="mb-4">
       <div
-        className="text-[11px] tracking-[0.2em] uppercase mb-1.5"
+        className="text-[11px] tracking-[0.2em] uppercase mb-1.5 flex items-center gap-1.5"
         style={{ color: "#8a8f93", fontFamily: "'Rajdhani', sans-serif" }}
       >
         {label}
+        {live && (
+          <span
+            className="w-1.5 h-1.5 rounded-full inline-block"
+            style={{ background: "#6fae60", boxShadow: "0 0 4px #6fae6099" }}
+            title="Live-updated"
+          />
+        )}
       </div>
       {children}
     </div>
@@ -201,6 +208,28 @@ function severityColor(current, threshold) {
   return "#e7e2d2";
 }
 
+function applyLiveOverlay(character, live) {
+  const liveId = character.liveId;
+  const hasLive = !!live && live.status === "ok";
+  const w = hasLive && liveId && live.wounds && live.wounds[liveId] != null ? live.wounds[liveId] : null;
+  const s = hasLive && liveId && live.strain && live.strain[liveId] != null ? live.strain[liveId] : null;
+  const d = hasLive && live.destiny ? live.destiny : null;
+
+  const vitals = character.vitals || {};
+  const staticWounds = vitals.wounds || { current: 0, threshold: 0 };
+  const staticStrain = vitals.strain || { current: 0, threshold: 0 };
+  const staticDestiny = character.destiny || { light: 0, dark: 0 };
+
+  return {
+    wounds: { current: w != null ? w : staticWounds.current, threshold: staticWounds.threshold },
+    strain: { current: s != null ? s : staticStrain.current, threshold: staticStrain.threshold },
+    destiny: d || staticDestiny,
+    woundsLive: w != null,
+    strainLive: s != null,
+    destinyLive: !!d,
+  };
+}
+
 export default function CampaignDashboard() {
   const [ledger, setLedger] = useState(DEMO_LEDGER);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -211,6 +240,12 @@ export default function CampaignDashboard() {
   const [pasteText, setPasteText] = useState("");
   const [loadState, setLoadState] = useState({ status: "idle", msg: "" });
   const bootTimer = useRef(null);
+
+  const [live, setLive] = useState({ status: "idle" });
+  const [rateLimit, setRateLimit] = useState(null);
+  const [secondsToNext, setSecondsToNext] = useState(LIVE_POLL_MS / 1000);
+  const liveTimer = useRef(null);
+  const countdownTimer = useRef(null);
 
   useEffect(() => {
     bootTimer.current = setTimeout(() => setBooted(true), 650);
@@ -227,6 +262,39 @@ export default function CampaignDashboard() {
     return () => clearTimeout(bootTimer.current);
   }, []);
 
+  const fetchLiveOverlay = async () => {
+    try {
+      const url = `https://api.github.com/repos/${LIVE_OWNER}/${LIVE_REPO}/contents/${LIVE_PATH}?_=${Date.now()}`;
+      const res = await fetch(url, {
+        headers: { Accept: "application/vnd.github.raw" },
+        cache: "no-store",
+      });
+      const remaining = res.headers.get("x-ratelimit-remaining");
+      const limit = res.headers.get("x-ratelimit-limit");
+      if (remaining != null) setRateLimit({ remaining: Number(remaining), limit: Number(limit) });
+
+      if (!res.ok) throw new Error(`${res.status}`);
+      const text = await res.text();
+      const parsed = JSON.parse(text);
+      setLive({ status: "ok", ...parsed, fetchedAt: new Date() });
+    } catch (err) {
+      setLive((prev) => ({ ...prev, status: "error", errorMsg: err.message }));
+    }
+    setSecondsToNext(LIVE_POLL_MS / 1000);
+  };
+
+  useEffect(() => {
+    fetchLiveOverlay();
+    liveTimer.current = setInterval(fetchLiveOverlay, LIVE_POLL_MS);
+    countdownTimer.current = setInterval(() => {
+      setSecondsToNext((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => {
+      clearInterval(liveTimer.current);
+      clearInterval(countdownTimer.current);
+    };
+  }, []);
+
   function reload() {
     setLoadState({ status: "loading", msg: "" });
     fetch(`/data/ledger.json?t=${Date.now()}`)
@@ -239,6 +307,7 @@ export default function CampaignDashboard() {
         setTimeout(() => setBooted(true), 500);
       })
       .catch((err) => setLoadState({ status: "error", msg: `Could not reload — ${err.message}` }));
+    fetchLiveOverlay();
   }
 
   function handlePasteLoad() {
@@ -256,11 +325,12 @@ export default function CampaignDashboard() {
 
   const party = ledger.characters || [];
   const active = party[activeIdx] || {};
+  const overlay = applyLiveOverlay(active, live);
 
   const v = active.vitals || {};
-  const wounds = v.wounds || { current: 0, threshold: 0 };
-  const strain = v.strain || { current: 0, threshold: 0 };
-  const destiny = active.destiny || { light: 0, dark: 0 };
+  const wounds = overlay.wounds;
+  const strain = overlay.strain;
+  const destiny = overlay.destiny;
   const xp = active.xp || { available: 0, total: 0 };
   const crits = v.criticalInjuries || [];
   const inv = active.inventory || [];
@@ -281,29 +351,38 @@ export default function CampaignDashboard() {
   const partySkillNames = FULL_SKILL_LIST.filter((canon) =>
     partySkillSets.some((set) => (set.find((s) => s.name === canon.name)?.rank ?? 0) > 0)
   );
+  const partyOverlays = party.map((p) => applyLiveOverlay(p, live));
+  const partyDestiny = partyOverlays.find((o) => o.destinyLive)?.destiny || party[0]?.destiny || { light: 0, dark: 0 };
+  const anyLive = live.status === "ok";
 
   return (
     <div
       className="min-h-screen w-full flex items-start justify-center p-4 sm:p-8"
-      style={{
-        background: "radial-gradient(circle at 50% 0%, #1b1f22 0%, #101315 70%)",
-        fontFamily: "'JetBrains Mono', monospace",
-      }}
+      style={{ background: "radial-gradient(circle at 50% 0%, #1b1f22 0%, #101315 70%)", fontFamily: "'JetBrains Mono', monospace" }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
         @keyframes scan { 0% { transform: translateY(-100%); opacity: 0.9; } 100% { transform: translateY(2200%); opacity: 0; } }
         @keyframes flicker { 0%,100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: 0.4; } 94% { opacity: 1; } }
+        @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         .boot-scan { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #5ec8d8, transparent); animation: scan 0.65s ease-out forwards; pointer-events: none; }
         .flicker-in { animation: flicker 1.4s ease-out; }
         .mono-num { font-variant-numeric: tabular-nums; }
+        .live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
       `}</style>
 
       <div className="w-full max-w-3xl">
         <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-          <span className="text-[11px] tracking-[0.2em] uppercase" style={{ color: "#5ec8d8", fontFamily: "'Rajdhani', sans-serif" }}>
-            {ledger.campaign || "Untitled Campaign"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2 h-2 rounded-full inline-block live-dot"
+              style={{ background: anyLive ? "#6fae60" : "#c23b3b" }}
+              title={anyLive ? "Live overlay connected" : "Live overlay unavailable — showing static ledger data"}
+            />
+            <span className="text-[11px] tracking-[0.2em] uppercase" style={{ color: "#5ec8d8", fontFamily: "'Rajdhani', sans-serif" }}>
+              {ledger.campaign || "Untitled Campaign"}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={reload}
@@ -359,8 +438,9 @@ export default function CampaignDashboard() {
         {showSource && (
           <div className="mb-4 p-4 border text-sm" style={{ borderColor: "#3a3f42", background: "#16191b" }}>
             <p className="text-[11px] leading-relaxed mb-2" style={{ color: "#8a8f93" }}>
-              The deployed site loads <code style={{ color: "#e7e2d2" }}>/data/ledger.json</code> automatically —
-              no controls needed there. This panel is only for testing a ledger shape here in preview.
+              Loads <code style={{ color: "#e7e2d2" }}>/data/ledger.json</code> at build time, and polls{" "}
+              <code style={{ color: "#e7e2d2" }}>{LIVE_REPO}/{LIVE_PATH}</code> every 90s for live Wounds/Strain/Destiny.
+              Live status: <span style={{ color: anyLive ? "#6fae60" : "#c23b3b" }}>{anyLive ? "connected" : (live.errorMsg || "not yet connected")}</span>.
             </p>
             <textarea
               value={pasteText}
@@ -396,13 +476,18 @@ export default function CampaignDashboard() {
               </h1>
 
               <div className="border p-3 mb-4 flex items-center gap-6 flex-wrap" style={{ borderColor: "#ffb00055", background: "#ffb00009" }}>
-                <div className="text-[11px] tracking-[0.2em] uppercase" style={{ color: "#ffb000" }}>Party Destiny Pool</div>
+                <div className="text-[11px] tracking-[0.2em] uppercase flex items-center gap-1.5" style={{ color: "#ffb000" }}>
+                  Party Destiny Pool
+                  {partyOverlays.some((o) => o.destinyLive) && (
+                    <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#6fae60" }} />
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <PipRow current={(party[0]?.destiny || {}).light ?? 0} threshold={(party[0]?.destiny || {}).light ?? 0} colorClass="#8fd3f4" />
+                  <PipRow current={partyDestiny.light} threshold={partyDestiny.light} colorClass="#8fd3f4" />
                   <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <PipRow current={(party[0]?.destiny || {}).dark ?? 0} threshold={(party[0]?.destiny || {}).dark ?? 0} colorClass="#c23b3b" />
+                  <PipRow current={partyDestiny.dark} threshold={partyDestiny.dark} colorClass="#c23b3b" />
                   <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
                 </div>
               </div>
@@ -432,17 +517,19 @@ export default function CampaignDashboard() {
                   <tbody>
                     <tr>
                       <td className="pt-2 pb-1 text-[10px] tracking-[0.2em] uppercase" style={{ color: "#5a5f62" }}>Wounds</td>
-                      {party.map((p, i) => {
-                        const w = p.vitals?.wounds || { current: 0, threshold: 0 };
-                        return <td key={i} className="pt-2 pb-1 px-2 mono-num" style={{ color: severityColor(w.current, w.threshold) }}>{w.current} / {w.threshold}</td>;
-                      })}
+                      {partyOverlays.map((o, i) => (
+                        <td key={i} className="pt-2 pb-1 px-2 mono-num" style={{ color: severityColor(o.wounds.current, o.wounds.threshold) }}>
+                          {o.wounds.current} / {o.wounds.threshold}{o.woundsLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td className="py-1 text-[10px] tracking-[0.2em] uppercase" style={{ color: "#5a5f62" }}>Strain</td>
-                      {party.map((p, i) => {
-                        const s = p.vitals?.strain || { current: 0, threshold: 0 };
-                        return <td key={i} className="py-1 px-2 mono-num" style={{ color: severityColor(s.current, s.threshold) }}>{s.current} / {s.threshold}</td>;
-                      })}
+                      {partyOverlays.map((o, i) => (
+                        <td key={i} className="py-1 px-2 mono-num" style={{ color: severityColor(o.strain.current, o.strain.threshold) }}>
+                          {o.strain.current} / {o.strain.threshold}{o.strainLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
+                        </td>
+                      ))}
                     </tr>
                     <tr>
                       <td className="py-1 text-[10px] tracking-[0.2em] uppercase" style={{ color: "#5a5f62" }}>Soak</td>
@@ -561,10 +648,10 @@ export default function CampaignDashboard() {
               <>
                 <div className="grid sm:grid-cols-2 gap-x-8">
                   <div>
-                    <Stat label={`Wounds — ${wounds.current} / ${wounds.threshold}`}>
+                    <Stat label={`Wounds — ${wounds.current} / ${wounds.threshold}`} live={overlay.woundsLive}>
                       <PipRow current={wounds.current} threshold={wounds.threshold} colorClass="#c23b3b" />
                     </Stat>
-                    <Stat label={`Strain — ${strain.current} / ${strain.threshold}`}>
+                    <Stat label={`Strain — ${strain.current} / ${strain.threshold}`} live={overlay.strainLive}>
                       <PipRow current={strain.current} threshold={strain.threshold} colorClass="#ffb000" />
                     </Stat>
                     <Stat label="Soak">
@@ -572,7 +659,7 @@ export default function CampaignDashboard() {
                     </Stat>
                   </div>
                   <div>
-                    <Stat label="Destiny Pool (party)">
+                    <Stat label="Destiny Pool (party)" live={overlay.destinyLive}>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5">
                           <PipRow current={destiny.light} threshold={destiny.light} colorClass="#8fd3f4" size="small" />
@@ -754,7 +841,13 @@ export default function CampaignDashboard() {
         )}
 
         <p className="mt-3 text-[11px] text-center" style={{ color: "#5a5f62" }}>
-          Read-only viewer · reads <code style={{ color: "#8a8f93" }}>/data/ledger.json</code> bundled at deploy time
+          Static data from <code style={{ color: "#8a8f93" }}>/data/ledger.json</code> ·{" "}
+          <span style={{ color: "#6fae60" }}>●</span> = live-sourced value
+        </p>
+        <p className="mt-1 text-[11px] text-center" style={{ color: "#5a5f62" }}>
+          {live.fetchedAt ? `Fetched ${live.fetchedAt.toLocaleTimeString()}` : "—"}
+          {" · "}Next auto-refresh in {secondsToNext}s
+          {rateLimit && ` · GitHub API: ${rateLimit.remaining}/${rateLimit.limit} remaining`}
         </p>
       </div>
     </div>
