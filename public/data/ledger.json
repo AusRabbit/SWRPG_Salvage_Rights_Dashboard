@@ -46,7 +46,18 @@
         { "name": "Streetwise", "rank": 1, "career": true },
         { "name": "Vigilance", "rank": 1, "career": false }
       ],
-      "talents": [],
+      "talents": [
+        { "name": "Clever Retort", "rank": 1, "tier": 1, "description": "Once per encounter, add two automatic Threat to another character's social check." },
+        { "name": "Solid Repairs", "rank": 1, "tier": 1, "description": "Repairs +1 hull trauma per rank whenever Kess repairs a starship or vehicle." },
+        { "name": "Former Professor — Xenology", "rank": 1, "tier": 1, "description": "Knowledge: Xenology becomes a career skill. Once per session, collect a small favour from a higher-learning contact." },
+        { "name": "Signature Vehicle — Wayfarer's Debt", "rank": 1, "tier": 1, "description": "Upgrade Mechanics checks made to work on the Wayfarer's Debt once. Silhouette prerequisite unverified; campaign purchase accepted." },
+        { "name": "Fine Tuning", "rank": 1, "tier": 2, "description": "Reduce 1 additional system strain per rank when reducing a starship/vehicle's system strain." },
+        { "name": "Scathing Tirade", "rank": 1, "tier": 2, "description": "Average Coercion check; successes and Advantage may inflict strain on enemies at short range." },
+        { "name": "Pride and Joy — Wayfarer's Debt", "rank": 1, "tier": 2, "description": "Upgrade social checks made within short range of the named vehicle, if the silhouette prerequisite is met (unverified)." },
+        { "name": "Applied Research", "rank": 1, "tier": 3, "description": "Once per session, use an appropriate Knowledge skill and Intellect in place of a required skill/characteristic when justified by research." },
+        { "name": "Distinctive Style", "rank": 1, "tier": 3, "description": "Before a Computers check to hack/breach a secured system, add two Success and two Threat to the result." },
+        { "name": "Gearhead", "rank": 1, "tier": 1, "description": "Removes one Setback die from Mechanics checks per rank and halves attachment-mod credit costs. Exact tier/rank unverified in the restored ledger — listed as a single purchase." }
+      ],
       "weapons": [],
       "armor": { "name": "Heavy Work Jacket", "soakBonus": 1, "defenseBonus": 0 }
     },
