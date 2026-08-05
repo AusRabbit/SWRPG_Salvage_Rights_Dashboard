@@ -9,7 +9,7 @@
       "updated": "2026-07-10T00:00:00Z",
       "vitals": {
         "wounds": { "threshold": 12 },
-        "strain": { "threshold": 11 },
+        "strain": { "threshold": 12 },
         "soak": 3,
         "criticalInjuries": []
       },
