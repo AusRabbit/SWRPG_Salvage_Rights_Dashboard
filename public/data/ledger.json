@@ -8,12 +8,11 @@
       "species": "Human",
       "updated": "2026-07-10T00:00:00Z",
       "vitals": {
-        "wounds": { "current": 0, "threshold": 12 },
-        "strain": { "current": 0, "threshold": 11 },
+        "wounds": { "threshold": 12 },
+        "strain": { "threshold": 11 },
         "soak": 3,
         "criticalInjuries": []
       },
-      "destiny": { "light": 1, "dark": 2 },
       "xp": { "available": 5, "total": 0 },
       "credits": 0,
       "inventory": [
@@ -69,12 +68,11 @@
       "species": "Bothan",
       "updated": "2026-07-10T00:00:00Z",
       "vitals": {
-        "wounds": { "current": 0, "threshold": 13 },
-        "strain": { "current": 0, "threshold": 14 },
+        "wounds": { "threshold": 13 },
+        "strain": { "threshold": 14 },
         "soak": 5,
         "criticalInjuries": []
       },
-      "destiny": { "light": 1, "dark": 2 },
       "xp": { "available": 0, "total": 0 },
       "credits": 0,
       "inventory": [

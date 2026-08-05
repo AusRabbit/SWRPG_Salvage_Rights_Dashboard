@@ -16,9 +16,16 @@ import { useState, useEffect, useRef } from "react";
 // Destiny is party-wide: if the live fetch succeeds, its destiny value
 // replaces every character's destiny uniformly.
 //
-// If the live fetch fails or a character has no liveId, everything falls
-// back to the static ledger.json values — the page never breaks, it just
-// stops being "live" for that piece of data.
+// ledger.json is no longer expected to carry current Wounds/Strain or a
+// per-character Destiny at all — the /live proxy's authenticated GitHub calls
+// (5,000 req/hour) are reliable enough that duplicating those values in two
+// files just risked drift. ledger.json still carries wound/strain
+// *thresholds* and Soak (structural, tied to characteristics/talents/gear,
+// not part of the live overlay). If a character has no liveId, or the live
+// fetch has never succeeded, applyLiveOverlay() returns null for those
+// values and the UI shows "No live data" rather than a stale or fabricated
+// number — an old ledger.json with static current/destiny values still
+// works as a legacy fallback if present, it's just no longer required.
 //
 // Talent-granted skill boosts: a talent may carry "boostsSkills": ["Skill
 // Name", ...] to represent a "add Boost die per rank to X checks" effect.
@@ -104,12 +111,12 @@ const SAMPLE_SCHEMA = `{
       "career": "string", "species": "string",
       "updated": "ISO 8601 timestamp",
       "vitals": {
-        "wounds": { "current": 0, "threshold": 0 },
-        "strain": { "current": 0, "threshold": 0 },
+        "wounds": { "threshold": 0, "current": "0 (optional legacy fallback — omit; live.json is authoritative)" },
+        "strain": { "threshold": 0, "current": "0 (optional legacy fallback — omit; live.json is authoritative)" },
         "soak": 0,
         "criticalInjuries": ["string", "..."]
       },
-      "destiny": { "light": 0, "dark": 0 },
+      "destiny": "{ light: 0, dark: 0 } (optional legacy fallback — omit; live.json is authoritative)",
       "xp": { "available": 0, "total": 0 },
       "credits": 0,
       "inventory": [{ "name": "string", "note": "string (optional)" }],
@@ -207,6 +214,12 @@ function getDefense(character) {
 }
 
 function PipRow({ current, threshold, colorClass, size = "normal" }) {
+  // current is null when there's no live overlay AND nothing static to fall
+  // back on — show that plainly rather than rendering an all-empty row that
+  // reads as "no wounds/strain" when it really means "unknown."
+  if (current == null) {
+    return <span className="text-[11px] italic" style={{ color: "#5a5f62" }}>No live data</span>;
+  }
   const pips = Array.from({ length: threshold }, (_, i) => i < current);
   const dim = size === "small" ? "w-3 h-3" : "w-4 h-4";
   return (
@@ -245,7 +258,7 @@ function DestinyTokens({ count, src, alt, sweepActive, sweepDir, sweepColor }) {
   return (
     <div className="relative flex gap-1">
       <div className="flex gap-1">
-        {Array.from({ length: count }, (_, i) => (
+        {Array.from({ length: count ?? 0 }, (_, i) => (
           <img
             key={i}
             src={src}
@@ -330,14 +343,19 @@ function applyLiveOverlay(character, live) {
   const d = hasLive && live.destiny ? live.destiny : null;
 
   const vitals = character.vitals || {};
-  const staticWounds = vitals.wounds || { current: 0, threshold: 0 };
-  const staticStrain = vitals.strain || { current: 0, threshold: 0 };
-  const staticDestiny = character.destiny || { light: 0, dark: 0 };
+  const staticWounds = vitals.wounds || {};
+  const staticStrain = vitals.strain || {};
+  // Legacy fallback: if an older ledger.json still has a static "current" or
+  // a per-character "destiny", honor it rather than discarding real data.
+  const staticDestiny = character.destiny || null;
+
+  const woundsCurrent = w != null ? w : (staticWounds.current ?? null);
+  const strainCurrent = s != null ? s : (staticStrain.current ?? null);
 
   return {
-    wounds: { current: w != null ? w : staticWounds.current, threshold: staticWounds.threshold },
-    strain: { current: s != null ? s : staticStrain.current, threshold: staticStrain.threshold },
-    destiny: d || staticDestiny,
+    wounds: { current: woundsCurrent, threshold: staticWounds.threshold ?? 0 },
+    strain: { current: strainCurrent, threshold: staticStrain.threshold ?? 0 },
+    destiny: d || staticDestiny, // may be null — no live data and nothing static to fall back to
     woundsLive: w != null,
     strainLive: s != null,
     destinyLive: !!d,
@@ -491,7 +509,8 @@ export default function CampaignDashboard() {
   const v = active.vitals || {};
   const wounds = overlay.wounds;
   const strain = overlay.strain;
-  const destiny = overlay.destiny;
+  const destiny = overlay.destiny || { light: 0, dark: 0 };
+  const destinyUnknown = !overlay.destiny;
   const xp = active.xp || { available: 0, total: 0 };
   const crits = v.criticalInjuries || [];
   const inv = active.inventory || [];
@@ -512,7 +531,9 @@ export default function CampaignDashboard() {
   const partySkillSets = party.map((p) => buildSkills(p));
   const partySkillNames = FULL_SKILL_LIST;
   const partyOverlays = party.map((p) => applyLiveOverlay(p, live));
-  const partyDestiny = partyOverlays.find((o) => o.destinyLive)?.destiny || party[0]?.destiny || { light: 0, dark: 0 };
+  const partyDestinyRaw = partyOverlays.find((o) => o.destinyLive)?.destiny || party[0]?.destiny || null;
+  const partyDestiny = partyDestinyRaw || { light: 0, dark: 0 };
+  const partyDestinyUnknown = !partyDestinyRaw;
   const anyLive = live.status === "ok";
 
   const now = Date.now();
@@ -654,14 +675,20 @@ export default function CampaignDashboard() {
                     <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#6fae60" }} />
                   )}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <DestinyTokens count={partyDestiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
-                  <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <DestinyTokens count={partyDestiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
-                  <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
-                </div>
+                {partyDestinyUnknown ? (
+                  <span className="text-[11px] italic" style={{ color: "#5a5f62" }}>No live data</span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <DestinyTokens count={partyDestiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
+                      <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <DestinyTokens count={partyDestiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
+                      <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-4 mb-4 text-[11px]" style={{ color: "#8a8f93" }}>
@@ -694,7 +721,7 @@ export default function CampaignDashboard() {
                         const sweepOn = !!liveId && (now - (lc.wounds[liveId] || 0)) < SWEEP_MS;
                         return (
                           <td key={i} className="relative pt-2 pb-1 px-2 mono-num text-[14px]" style={{ color: severityColor(o.wounds.current, o.wounds.threshold) }}>
-                            {o.wounds.current} / {o.wounds.threshold}{o.woundsLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
+                            {o.wounds.current ?? "—"} / {o.wounds.threshold}{o.woundsLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
                             <SweepOverlay active={sweepOn} dir={lc.woundsDir[liveId]} color="#c23b3b" />
                           </td>
                         );
@@ -707,7 +734,7 @@ export default function CampaignDashboard() {
                         const sweepOn = !!liveId && (now - (lc.strain[liveId] || 0)) < SWEEP_MS;
                         return (
                           <td key={i} className="relative py-1 px-2 mono-num text-[14px]" style={{ color: severityColor(o.strain.current, o.strain.threshold) }}>
-                            {o.strain.current} / {o.strain.threshold}{o.strainLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
+                            {o.strain.current ?? "—"} / {o.strain.threshold}{o.strainLive && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
                             <SweepOverlay active={sweepOn} dir={lc.strainDir[liveId]} color="#ffb000" />
                           </td>
                         );
@@ -834,13 +861,13 @@ export default function CampaignDashboard() {
               <>
                 <div className="grid sm:grid-cols-2 gap-x-8">
                   <div>
-                    <Stat label={`Wounds — ${wounds.current} / ${wounds.threshold}`} live={overlay.woundsLive}>
+                    <Stat label={`Wounds — ${wounds.current ?? "—"} / ${wounds.threshold}`} live={overlay.woundsLive}>
                       <div className="relative">
                         <PipRow current={wounds.current} threshold={wounds.threshold} colorClass="#c23b3b" />
                         <SweepOverlay active={woundsSweepOn} dir={woundsDir} color="#c23b3b" />
                       </div>
                     </Stat>
-                    <Stat label={`Strain — ${strain.current} / ${strain.threshold}`} live={overlay.strainLive}>
+                    <Stat label={`Strain — ${strain.current ?? "—"} / ${strain.threshold}`} live={overlay.strainLive}>
                       <div className="relative">
                         <PipRow current={strain.current} threshold={strain.threshold} colorClass="#ffb000" />
                         <SweepOverlay active={strainSweepOn} dir={strainDir} color="#ffb000" />
@@ -852,16 +879,20 @@ export default function CampaignDashboard() {
                   </div>
                   <div>
                     <Stat label="Destiny Pool (party)" live={overlay.destinyLive}>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1.5">
-                          <DestinyTokens count={destiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
-                          <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
+                      {destinyUnknown ? (
+                        <span className="text-[11px] italic" style={{ color: "#5a5f62" }}>No live data</span>
+                      ) : (
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <DestinyTokens count={destiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
+                            <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <DestinyTokens count={destiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
+                            <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <DestinyTokens count={destiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
-                          <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
-                        </div>
-                      </div>
+                      )}
                     </Stat>
                     <Stat label="Experience — unspent">
                       <span className="text-xl mono-num" style={{ color: "#e7e2d2" }}>{xp.available}</span>
