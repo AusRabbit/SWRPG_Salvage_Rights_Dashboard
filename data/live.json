@@ -1,5 +1,5 @@
 {
-  "destiny": { "light": 3, "dark": 0 },
+  "destiny": { "light": 2, "dark": 1 },
   "wounds": { "kess": 3, "carsk": 4, "rethven": 2 },
-  "strain": { "kess": 0, "carsk": 3, "rethven": 0 }
+  "strain": { "kess": 1, "carsk": 6, "rethven": 0 }
 }
