@@ -111,7 +111,7 @@
     },
     {
       "name": "Rethven",
-      "hidden": false,
+      "hidden": hidden,
       "liveId": "rethven",
       "career": "Independent Findsman / Xenoarchaeologist",
       "species": "Gand (Lungless — immune to suffocation, no breather needed)",
