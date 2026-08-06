@@ -85,7 +85,7 @@
       ],
       "motivationObligation": {
         "motivation": "Collects fragments of rebel intelligence hoping to find those responsible for his family's deaths, or harm the wider movement that took them",
-        "obligation": { "type": "Obsession", "value": 20, "note": "Triggered this session — the planet's colours stir the memory; all PCs at -1 strain threshold this session, Carsk at -2" }
+        "obligation": { "type": "Obsession", "value": 20, "note": "Triggered 10 Jul — the planet's colours stirred the memory. Ledger no longer tracks session-scoped stat penalties; threshold above is the true baseline." }
       },
       "characteristics": { "brawn": 3, "agility": 3, "intellect": 2, "cunning": 3, "willpower": 3, "presence": 2 },
       "skills": [
@@ -183,6 +183,116 @@
         { "name": "Old Blaster Pistol", "skill": "Ranged: Light", "damage": 6, "crit": 3, "range": "Medium", "special": "—" }
       ],
       "armor": { "name": "Insulated Duster and Environmental Wraps", "soakBonus": 1, "defenseBonus": 0 }
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Dr. Sel Varo",
+      "role": "Cygnus defector, corporate insider, biological/containment expert",
+      "species": "Not specified in ledger",
+      "gender": "Female",
+      "status": "Present — travelling with the expedition",
+      "summary": "Cygnus defector turned biological/containment specialist for the expedition; pragmatic, wary, and increasingly protective of the crew.",
+      "whatPartyKnows": "Handles biological assessment and quarantine sign-off. Chooses to stay close to Kess in the field. Still withholding parts of her Cygnus and quarantine history. Vossk visibly recognized her, and a private conversation between them is pending — the party doesn't yet know what that history is."
+    },
+    {
+      "name": "Rhett Sorn",
+      "role": "Engineer survivor, evidence witness, technical support",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Present — currently sole crew aboard the Wayfarer's Debt",
+      "summary": "Engineer survivor of an earlier incident, now diagnostics and containment support; careful, competent under pressure, afraid of the origin site.",
+      "whatPartyKnows": "Relieved the specimen limb is no longer aboard the ship. Holding the Wayfarer's Debt in an unsteady repulsorlift hover 400m from the dome because someone has to. Vulnerable to pressure and useful enough that Cygnus could target him."
+    },
+    {
+      "name": "Lt. Maren Vossk",
+      "role": "Former Imperial Special Missions / quarantine breach commander",
+      "species": "Human",
+      "gender": "Female",
+      "status": "Present — leads the quarantine squad; currently sealed in the relay-junction chamber, cut off from the party",
+      "summary": "Field commander of Dane's quarantine team; professional, battle-tested, was at the origin site eleven years ago and lost people there.",
+      "whatPartyKnows": "Professional respect toward Carsk, cautious respect toward Kess, watchful around Sel. Was present at the original incident eleven years ago. The entity addressed her directly by an old name — \"Corven\" — accurately and with familiarity, immediately before sealing a door between her and the party. She has not explained who or what that name refers to."
+    },
+    {
+      "name": "Sgt. Brak Tanris",
+      "role": "Heavy Weapons / Breach Specialist",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Present — part of Vossk's quarantine squad; currently sealed in the relay-junction chamber",
+      "summary": "Heavy weapons and breach specialist on Vossk's team. No further detail recorded in the ledger yet.",
+      "whatPartyKnows": "Nothing beyond his role has been established in play so far."
+    },
+    {
+      "name": "Cpl. Tavi Renn",
+      "role": "Scout / Marksman",
+      "species": "Not specified in ledger",
+      "gender": "Female",
+      "status": "Present — part of Vossk's quarantine squad; currently sealed in the relay-junction chamber",
+      "summary": "Scout and marksman on Vossk's team; alert, unsentimental, and difficult to surprise.",
+      "whatPartyKnows": "Not hostile to the party, but will act against anyone who breaks anti-voice protocol. Treats an unverified voice as never a valid tactical command."
+    },
+    {
+      "name": "Spc. Emon Vale",
+      "role": "Medic / Containment Technician",
+      "species": "Human",
+      "gender": "Male",
+      "status": "Present — part of Vossk's quarantine squad; currently sealed in the relay-junction chamber",
+      "summary": "Medic and containment technician on Vossk's team; controlled, polite, uneasy around casual talk of experimentation.",
+      "whatPartyKnows": "Finds Kess useful but potentially dangerous, treats Sel as a professional peer with unresolved history. Believes the original Imperial team may have injured an intelligent life-form before trying to understand it, and is the member most likely to push back on destructive methods."
+    },
+    {
+      "name": "Commander Ilyra Dane",
+      "role": "Transactional ally / dangerous patron",
+      "species": "Not specified in ledger",
+      "gender": "Female",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "Holds the severed specimen limb and cryo unit aboard the Long Wake; provided the quarantine squad and the origin-site coordinates.",
+      "whatPartyKnows": "Helping the party, but also shaping them into the right people to reopen a site she can't safely approach alone."
+    },
+    {
+      "name": "Captain Verrin Kallax",
+      "role": "Rival, potentially bargaining antagonist",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "Local network captain whose team the party broke; may know the specimen moved or was sold.",
+      "whatPartyKnows": "His leverage clock has triggered — the party expects he'll react, bargain, retaliate, disavow, or sell information, but doesn't know which yet."
+    },
+    {
+      "name": "Marda Voss",
+      "role": "Procedural ally, potentially offended",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "Holds a sealed anomaly recording; the physical sample from that encounter was sold elsewhere.",
+      "whatPartyKnows": "Relationship status is uncertain — may be offended by how that sample was handled."
+    },
+    {
+      "name": "Un Mo'mento",
+      "role": "Contact",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "An angry but still useful contact from earlier in the campaign.",
+      "whatPartyKnows": "Trust is strained but no new contact has occurred recently."
+    },
+    {
+      "name": "Talla",
+      "role": "Port-Service contact",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "Port-Service contact who supplied Kess's slicer tool.",
+      "whatPartyKnows": "The credentials provided may be short-lived — exact status not tracked."
+    },
+    {
+      "name": "Drenn",
+      "role": "Source of recovered intelligence (involuntary)",
+      "species": "Not specified in ledger",
+      "gender": "Not specified in ledger",
+      "status": "Off-screen — not present at the origin site",
+      "summary": "Source, involuntarily, of the encrypted bounty puck and comm now held by Carsk.",
+      "whatPartyKnows": "Whatever the comm and puck contain hasn't been fully exploited yet."
     }
   ]
 }
