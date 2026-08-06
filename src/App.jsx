@@ -1005,7 +1005,7 @@ export default function CampaignDashboard() {
       setLive((prev) => {
         const now = Date.now();
         const lc = lastChangeRef.current;
-        const party = ledgerRef.current.characters || [];
+        const party = (ledgerRef.current.characters || []).filter((p) => !p.hidden);
         const prevForOverlay = prev.status === "ok" ? prev : { status: "idle" };
 
         party.filter((p) => p.liveId).forEach((p) => {
@@ -1083,7 +1083,10 @@ export default function CampaignDashboard() {
     }
   }
 
-  const party = ledger.characters || [];
+  // "hidden" characters stay fully drafted in ledger.json but are filtered
+  // out of every view (character tab, Party View, live-overlay tracking)
+  // until flipped to false — the whole reveal-a-new-PC workflow.
+  const party = (ledger.characters || []).filter((c) => !c.hidden);
   const active = party[activeIdx] || {};
   const overlay = applyLiveOverlay(active, live);
 

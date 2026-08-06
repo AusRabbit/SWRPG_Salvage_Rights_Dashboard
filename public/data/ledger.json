@@ -108,6 +108,81 @@
         { "name": "Vibroknife", "skill": "Melee", "damage": "Brawn+1", "crit": 2, "range": "Engaged", "special": "Pierce 2" }
       ],
       "armor": { "name": "Modified Cresh \"Luck\" Armour", "soakBonus": 2, "defenseBonus": 1 }
+    },
+    {
+      "name": "Rethven",
+      "hidden": true,
+      "liveId": "rethven",
+      "career": "Independent Findsman / Xenoarchaeologist",
+      "species": "Gand (Lungless — immune to suffocation, no breather needed)",
+      "updated": "2026-08-06T00:00:00Z",
+      "vitals": {
+        "wounds": { "threshold": 12 },
+        "strain": { "threshold": 13 },
+        "soak": 3,
+        "criticalInjuries": []
+      },
+      "xp": { "available": 0, "total": 0 },
+      "credits": 0,
+      "inventory": [
+        { "name": "Findsman's Kit", "note": "Ritual tools blended with a jury-rigged sensor array — an improvised long-range environmental scanner built and rebuilt from salvaged parts" },
+        { "name": "Survey Satchel", "note": "Sample vials and a cracked data-slate holding years of mapping notes, room by room" },
+        { "name": "Logbook", "note": "Hand-written; potentially the single most valuable piece of evidence in the campaign, if he'll share it" },
+        { "name": "Modified Survival Multitool", "note": "Doubles as an improvised prying/climbing tool" },
+        { "name": "Old Blaster Pistol", "note": "Well-maintained despite its age, rarely drawn" },
+        { "name": "Climbing Line and Grapple Hook" },
+        { "name": "Insulated Duster and Environmental Wraps", "note": "+1 Soak, included in derived stats" },
+        { "name": "Glowrod", "note": "Scavenged, battery-rebuilt more than once" },
+        { "name": "Cache Map", "note": "Knows the location of several small supply caches hidden through the dome, unmarked on any recorder or log" }
+      ],
+      "motivationObligation": {
+        "motivation": "Has made a kind of peace with staying and with the voices — more interested in whether this crew will actually listen to what he's learned than in being rescued",
+        "obligation": { "type": "", "value": 0, "note": "" }
+      },
+      "characteristics": { "brawn": 2, "agility": 3, "intellect": 3, "cunning": 3, "willpower": 3, "presence": 2 },
+      "skills": [
+        { "name": "Astrogation", "rank": 1, "career": false },
+        { "name": "Athletics", "rank": 2, "career": false },
+        { "name": "Brawl", "rank": 1, "career": false },
+        { "name": "Computers", "rank": 1, "career": false },
+        { "name": "Cool", "rank": 2, "career": false },
+        { "name": "Coordination", "rank": 2, "career": false },
+        { "name": "Discipline", "rank": 2, "career": false },
+        { "name": "Knowledge: Education", "rank": 2, "career": false },
+        { "name": "Knowledge: Lore", "rank": 3, "career": true },
+        { "name": "Knowledge: Outer Rim", "rank": 2, "career": false },
+        { "name": "Knowledge: Underworld", "rank": 1, "career": false },
+        { "name": "Knowledge: Xenology", "rank": 3, "career": false },
+        { "name": "Mechanics", "rank": 2, "career": false },
+        { "name": "Medicine", "rank": 1, "career": false },
+        { "name": "Melee", "rank": 1, "career": false },
+        { "name": "Negotiation", "rank": 1, "career": false },
+        { "name": "Perception", "rank": 3, "career": false },
+        { "name": "Piloting: Planetary", "rank": 1, "career": false },
+        { "name": "Piloting: Space", "rank": 1, "career": false },
+        { "name": "Ranged: Light", "rank": 2, "career": false },
+        { "name": "Resilience", "rank": 2, "career": false },
+        { "name": "Skulduggery", "rank": 2, "career": false },
+        { "name": "Stealth", "rank": 2, "career": false },
+        { "name": "Streetwise", "rank": 1, "career": false },
+        { "name": "Survival", "rank": 4, "career": true },
+        { "name": "Vigilance", "rank": 3, "career": false }
+      ],
+      "talents": [
+        { "name": "Forager", "rank": 1, "tier": 1, "description": "Remove 2 Setback from checks to find food, water, or shelter; such Survival checks take half the normal time." },
+        { "name": "Expert Tracker", "rank": 1, "tier": 1, "description": "Remove 1 Setback per rank from checks to find or follow tracks; tracking checks take 50% less time." },
+        { "name": "Utility Belt", "rank": 1, "tier": 1, "description": "May spend a Destiny Point to produce a previously undocumented but essential small tool from his kit (Rarity 4 or lower, non-weapon)." },
+        { "name": "Familiar Suns", "rank": 1, "tier": 1, "description": "Once per session, spend a maneuver on a Hard Knowledge (Outer Rim or Xenology) check to instantly know key facts about the environment he's in." },
+        { "name": "Toughened", "rank": 1, "tier": 1, "description": "+2 Wound Threshold per rank (already reflected in Wound Threshold above)." },
+        { "name": "Well Rounded", "rank": 1, "tier": 2, "description": "Two chosen skills permanently become career skills — Survival and Knowledge (Lore)." },
+        { "name": "Utinni!", "rank": 1, "tier": 2, "description": "Remove 1 Setback per rank from checks to find or scavenge items/gear; such checks take half the normal time." },
+        { "name": "Indistinguishable", "rank": 1, "tier": 2, "description": "Upgrade the difficulty of checks made to identify or describe him once per rank — years alone have made him easy to overlook, easy to mistake for part of the ruin." }
+      ],
+      "weapons": [
+        { "name": "Modified Survival Multitool", "skill": "Melee", "damage": 3, "crit": 4, "range": "Engaged", "special": "Improvised; doubles as a prying/climbing tool" },
+        { "name": "Old Blaster Pistol", "skill": "Ranged: Light", "damage": 6, "crit": 3, "range": "Medium", "special": "—" }
+      ],
+      "armor": { "name": "Insulated Duster and Environmental Wraps", "soakBonus": 1, "defenseBonus": 0 }
     }
   ]
 }
