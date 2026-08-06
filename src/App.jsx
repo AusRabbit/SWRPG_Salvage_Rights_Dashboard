@@ -394,6 +394,24 @@ function SelectedDiceSummary({ pool, size = 18 }) {
   );
 }
 
+// Icons-only dice pool readout — no spelled-out labels, just each active die
+// type's icon with an ×N count. Used in the shared roll log so a scan of the
+// table shows what was rolled before the summarised result underneath it.
+function PoolIconStrip({ pool, size = 16 }) {
+  const active = DIE_TYPES.filter((dt) => (pool?.[dt.key] || 0) > 0);
+  if (active.length === 0) return null;
+  return (
+    <span className="flex flex-wrap items-center gap-2.5">
+      {active.map((dt) => (
+        <span key={dt.key} className="flex items-center gap-1">
+          <DieFaceIcon img={dt.img} label={dt.label} size={size} />
+          <span className="text-[11px] mono-num" style={{ color: "#8a8f93" }}>×{pool[dt.key]}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 // Difficulty tier readout: Challenge dice count toward the same tier as
 // Difficulty dice (both represent the check's base difficulty — Challenge
 // is just Difficulty "upgraded" per FFG's dice-upgrade rule), so the tier
@@ -510,6 +528,14 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
     setPool((p) => ({ ...p, difficulty: count }));
   }
 
+  // Quick range/melee Difficulty add-ons — these ADD to whatever base
+  // Difficulty is already selected (e.g. from Quick difficulty), rather
+  // than overwriting it, so a range band stacks on top of the check's
+  // normal difficulty instead of replacing it.
+  function addDifficulty(n) {
+    setPool((p) => ({ ...p, difficulty: (p.difficulty || 0) + n }));
+  }
+
   // FFG "upgrade" rule: converts one Ability die into a Proficiency die.
   function upgradeAbilityToProficiency() {
     setPool((p) => {
@@ -541,6 +567,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
     const entry = {
       player: (playerName || "Unnamed").slice(0, 40),
       poolLabel: poolLabel(pool),
+      pool: { ...pool },
       netSuccess: result.netSuccess,
       netAdvantage: result.netAdvantage,
       triumph: result.triumph,
@@ -615,7 +642,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
         <div className="mb-3">
           <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Quick difficulty</div>
           <div className="flex items-center gap-2 flex-wrap">
-            {[2, 3, 4].map((n) => (
+            {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 onClick={() => setDifficulty(n)}
@@ -623,6 +650,27 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                 style={{ color: "#8a5ec8", borderColor: "#8a5ec866" }}
               >
                 {n} · {DIFFICULTY_TIER_NAMES[n]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Add range/melee difficulty</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { n: 2, label: "Melee" },
+              { n: 1, label: "Short Range" },
+              { n: 2, label: "Medium Range" },
+              { n: 3, label: "Long Range" },
+            ].map(({ n, label }) => (
+              <button
+                key={label}
+                onClick={() => addDifficulty(n)}
+                className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
+                style={{ color: "#8a5ec8", borderColor: "#8a5ec866" }}
+              >
+                +{n} · {label}
               </button>
             ))}
           </div>
@@ -748,6 +796,11 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                     <span style={{ color: "#5ec8d8" }}>{entry.player}</span>
                     <span style={{ color: "#5a5f62" }}>{new Date(entry.ts).toLocaleTimeString()}</span>
                   </div>
+                  {entry.pool && (
+                    <div className="mb-1.5">
+                      <PoolIconStrip pool={entry.pool} />
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-5" style={{ color: "#e7e2d2" }}>
                     {entry.netSuccess !== 0 ? (
                       <SymbolTally sym={entry.netSuccess > 0 ? "s" : "f"} count={Math.abs(entry.netSuccess)} size={42} withLabel fontSize={22} />
