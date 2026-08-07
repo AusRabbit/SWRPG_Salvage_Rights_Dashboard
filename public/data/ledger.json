@@ -17,8 +17,8 @@
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
-        { "name": "Blaster Pistol", "note": "exact profile unverified in source ledger" },
-        { "name": "Captured Cygnus Carbine", "note": "exact profile unverified in source ledger" },
+        { "name": "Heavy Blaster Pistol", "note": "Cheap, hits hard" },
+        { "name": "Captured Cygnus Carbine", "note": "exact model unverified in source ledger — standard Blaster Carbine profile applied below (see Weapons)" },
         { "name": "Mechanic Toolkit, Portable Scanner, Utility Harness" },
         { "name": "Heavy Work Jacket", "note": "+1 Soak, included in derived stats" },
         { "name": "Cygnus Berth Clearance Tag" }
@@ -58,7 +58,10 @@
         { "name": "Distinctive Style", "rank": 1, "tier": 3, "description": "Before a Computers check to hack/breach a secured system, add two Success and two Threat to the result." },
         { "name": "Gearhead", "rank": 1, "tier": 1, "description": "Removes one Setback die from Mechanics checks per rank and halves attachment-mod credit costs. Exact tier/rank unverified in the restored ledger — listed as a single purchase." }
       ],
-      "weapons": [],
+      "weapons": [
+        { "name": "Heavy Blaster Pistol", "skill": "Ranged: Light", "damage": 7, "crit": 3, "range": "Medium", "special": "Stun setting - Tends to run out of charge" },
+        { "name": "Captured Cygnus Carbine", "skill": "Ranged: Heavy", "damage": 9, "crit": 3, "range": "Medium", "special": "Stun setting — Don't let them see you with this" }
+      ],
       "armor": { "name": "Heavy Work Jacket", "soakBonus": 1, "defenseBonus": 0 }
     },
     {
