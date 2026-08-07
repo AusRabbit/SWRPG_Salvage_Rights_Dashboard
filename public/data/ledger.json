@@ -116,7 +116,7 @@
         "soak": 3,
         "criticalInjuries": []
       },
-      "xp": { "available": 0, "total": 0 },
+      "xp": { "available": 20, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Findsman's Kit", "note": "Ritual tools blended with a jury-rigged sensor array — an improvised long-range environmental scanner built and rebuilt from salvaged parts" },
