@@ -13,7 +13,7 @@
         "soak": 3,
         "criticalInjuries": []
       },
-      "xp": { "available": 5, "total": 0 },
+      "xp": { "available": 10, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
@@ -31,20 +31,11 @@
       "skills": [
         { "name": "Astrogation", "rank": 1, "career": true },
         { "name": "Computers", "rank": 1, "career": true },
-        { "name": "Cool", "rank": 1, "career": false },
-        { "name": "Cybernetics", "rank": 1, "career": false },
-        { "name": "Discipline", "rank": 1, "career": true },
-        { "name": "Knowledge: Education", "rank": 1, "career": false },
         { "name": "Knowledge: Outer Rim", "rank": 1, "career": true },
-        { "name": "Knowledge: Xenology", "rank": 1, "career": true },
         { "name": "Mechanics", "rank": 2, "career": true },
-        { "name": "Negotiation", "rank": 1, "career": false },
         { "name": "Perception", "rank": 1, "career": true },
         { "name": "Piloting: Space", "rank": 2, "career": true },
-        { "name": "Ranged: Light", "rank": 1, "career": false },
-        { "name": "Skulduggery", "rank": 1, "career": false },
-        { "name": "Streetwise", "rank": 1, "career": true },
-        { "name": "Vigilance", "rank": 1, "career": false }
+        { "name": "Ranged: Light", "rank": 1, "career": false }
       ],
       "talents": [
         { "name": "Clever Retort", "rank": 1, "tier": 1, "description": "Once per encounter, add two automatic Threat to another character's social check." },
@@ -55,8 +46,7 @@
         { "name": "Scathing Tirade", "rank": 1, "tier": 2, "description": "Average Coercion check; successes and Advantage may inflict strain on enemies at short range." },
         { "name": "Pride and Joy — Wayfarer's Debt", "rank": 1, "tier": 2, "description": "Upgrade social checks made within short range of the named vehicle, if the silhouette prerequisite is met (unverified)." },
         { "name": "Applied Research", "rank": 1, "tier": 3, "description": "Once per session, use an appropriate Knowledge skill and Intellect in place of a required skill/characteristic when justified by research." },
-        { "name": "Distinctive Style", "rank": 1, "tier": 3, "description": "Before a Computers check to hack/breach a secured system, add two Success and two Threat to the result." },
-        { "name": "Gearhead", "rank": 1, "tier": 1, "description": "Removes one Setback die from Mechanics checks per rank and halves attachment-mod credit costs. Exact tier/rank unverified in the restored ledger — listed as a single purchase." }
+        { "name": "Distinctive Style", "rank": 1, "tier": 3, "description": "Before a Computers check to hack/breach a secured system, add two Success and two Threat to the result." }
       ],
       "weapons": [
         { "name": "Heavy Blaster Pistol", "skill": "Ranged: Light", "damage": 7, "crit": 3, "range": "Medium", "special": "Stun setting - Tends to run out of charge" },
@@ -76,7 +66,7 @@
         "soak": 5,
         "criticalInjuries": []
       },
-      "xp": { "available": 0, "total": 0 },
+      "xp": { "available": 25, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
@@ -95,7 +85,7 @@
         { "name": "Athletics", "rank": 2, "career": true },
         { "name": "Discipline", "rank": 1, "career": true },
         { "name": "Perception", "rank": 3, "career": true },
-        { "name": "Ranged: Heavy", "rank": 1, "career": true },
+        { "name": "Ranged: Heavy", "rank": 2, "career": true },
         { "name": "Ranged: Light", "rank": 1, "career": true },
         { "name": "Resilience", "rank": 1, "career": true },
         { "name": "Vigilance", "rank": 1, "career": true }
@@ -103,6 +93,7 @@
       "talents": [
         { "name": "Rapid Recovery", "rank": 1, "tier": 1, "description": "Exact mechanical text unverified in the restored ledger; talent and tier are confirmed." },
         { "name": "Worlds War Vet", "rank": 1, "tier": 1, "description": "Ranged (Heavy) or Resilience becomes a career skill. Once per session, call in a small favour from current/former military personnel connected to his service background." },
+        { "name": "Quick Draw", "rank": 1, "tier": 1, "description": "Once per round on Carsk's turn, draw or holster an easily accessible weapon/item as an incidental. Reduces a weapon's Prepare rating by 1, to a minimum of 1." },
         { "name": "Bad Cop", "rank": 1, "tier": 2, "description": "Spend Advantage on a Coercion or Deception check to upgrade an ally's later social check against the same target during the encounter." }
       ],
       "weapons": [
