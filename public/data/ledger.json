@@ -21,7 +21,8 @@
         { "name": "Captured Cygnus Carbine", "note": "exact model unverified in source ledger — standard Blaster Carbine profile applied below (see Weapons)" },
         { "name": "Mechanic Toolkit, Portable Scanner, Utility Harness" },
         { "name": "Heavy Work Jacket", "note": "+1 Soak, included in derived stats" },
-        { "name": "Cygnus Berth Clearance Tag" }
+        { "name": "Cygnus Berth Clearance Tag" },
+        { "name": "Undefined but too much rope" }
       ],
       "motivationObligation": {
         "motivation": "Strongly tempted by dangerous knowledge and technology — tempered by mission discipline and Sel's steadying presence",
@@ -30,7 +31,7 @@
       "characteristics": { "brawn": 2, "agility": 3, "intellect": 4, "cunning": 2, "willpower": 2, "presence": 2 },
       "skills": [
         { "name": "Astrogation", "rank": 1, "career": true },
-        { "name": "Computers", "rank": 1, "career": true },
+        { "name": "Computers", "rank": 2, "career": true },
         { "name": "Knowledge: Outer Rim", "rank": 1, "career": true },
         { "name": "Mechanics", "rank": 2, "career": true },
         { "name": "Perception", "rank": 1, "career": true },
