@@ -67,7 +67,7 @@
         "soak": 5,
         "criticalInjuries": []
       },
-      "xp": { "available": 25, "total": 0 },
+      "xp": { "available": 0, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
@@ -89,13 +89,15 @@
         { "name": "Ranged: Heavy", "rank": 2, "career": true },
         { "name": "Ranged: Light", "rank": 1, "career": true },
         { "name": "Resilience", "rank": 1, "career": true },
-        { "name": "Vigilance", "rank": 1, "career": true }
+        { "name": "Vigilance", "rank": 2, "career": true }
       ],
       "talents": [
         { "name": "Rapid Recovery", "rank": 1, "tier": 1, "description": "Exact mechanical text unverified in the restored ledger; talent and tier are confirmed." },
         { "name": "Worlds War Vet", "rank": 1, "tier": 1, "description": "Ranged (Heavy) or Resilience becomes a career skill. Once per session, call in a small favour from current/former military personnel connected to his service background." },
         { "name": "Quick Draw", "rank": 1, "tier": 1, "description": "Once per round on Carsk's turn, draw or holster an easily accessible weapon/item as an incidental. Reduces a weapon's Prepare rating by 1, to a minimum of 1." },
-        { "name": "Bad Cop", "rank": 1, "tier": 2, "description": "Spend Advantage on a Coercion or Deception check to upgrade an ally's later social check against the same target during the encounter." }
+        { "name": "Bad Cop", "rank": 1, "tier": 2, "description": "Spend Advantage on a Coercion or Deception check to upgrade an ally's later social check against the same target during the encounter." },
+        { "name": "Tavern Brawler", "rank": 1, "tier": 1, "description": "Carsk adds Advantage to Brawl checks and combat checks using improvised weapons." },
+        { "name": "Loom", "rank": 1, "tier": 2, "description": "When an ally engaged with Carsk makes a successful Charm, Deception, or Negotiation check, Carsk adds Advantage per rank in Coercion to the ally's check." }
       ],
       "weapons": [
         { "name": "Blaster Rifle", "skill": "Ranged: Heavy", "damage": 9, "crit": 3, "range": "Long", "special": "Stun setting" },
@@ -117,7 +119,7 @@
         "soak": 3,
         "criticalInjuries": []
       },
-      "xp": { "available": 20, "total": 0 },
+      "xp": { "available": 5, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Findsman's Kit", "note": "Ritual tools blended with a jury-rigged sensor array — an improvised long-range environmental scanner built and rebuilt from salvaged parts" },
@@ -145,12 +147,14 @@
         { "name": "Perception", "rank": 2, "career": true },
         { "name": "Piloting: Space", "rank": 1, "career": true },
         { "name": "Ranged: Light", "rank": 1, "career": false },
+        { "name": "Stealth", "rank": 1, "career": false },
         { "name": "Survival", "rank": 3, "career": true }
       ],
       "talents": [
         { "name": "Toughened", "rank": 1, "tier": 1, "description": "+2 Wound Threshold per rank (already reflected in Wound Threshold above)." },
         { "name": "Grit", "rank": 1, "tier": 1, "description": "+1 Strain Threshold per rank (already reflected in Strain Threshold above)." },
-        { "name": "Researcher", "rank": 1, "tier": 2, "description": "On a successful Knowledge check, character and allies gain automatic Advantage per rank on checks to act on those facts, until the end of his next turn." }
+        { "name": "Researcher", "rank": 1, "tier": 2, "description": "On a successful Knowledge check, character and allies gain automatic Advantage per rank on checks to act on those facts, until the end of his next turn." },
+        { "name": "Unremarkable", "rank": 1, "tier": 1, "description": "Other characters add Failure to any checks made to find or identify Rethven in a crowd." }
       ],
       "weapons": [
         { "name": "Modified Survival Multitool", "skill": "Melee", "damage": 3, "crit": 4, "range": "Engaged", "special": "Improvised; doubles as a prying/climbing tool" },
