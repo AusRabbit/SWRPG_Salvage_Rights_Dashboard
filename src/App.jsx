@@ -299,25 +299,6 @@ function SymbolTally({ sym, count, size = 15, withLabel = false, fontSize }) {
   );
 }
 
-function NetResultSummary({ result, size = 17 }) {
-  return (
-    <span className="flex flex-wrap items-center gap-3">
-      {result.netSuccess !== 0 ? (
-        <SymbolTally sym={result.netSuccess > 0 ? "s" : "f"} count={Math.abs(result.netSuccess)} size={size} />
-      ) : (
-        <span className="text-[13px]">0 net Success/Failure</span>
-      )}
-      {result.netAdvantage !== 0 && (
-        <SymbolTally sym={result.netAdvantage > 0 ? "a" : "t"} count={Math.abs(result.netAdvantage)} size={size} />
-      )}
-      {result.triumph > 0 && <SymbolTally sym="tr" count={result.triumph} size={size} />}
-      {result.despair > 0 && <SymbolTally sym="d" count={result.despair} size={size} />}
-      {result.lightPoint > 0 && <SymbolTally sym="lp" count={result.lightPoint} size={size} />}
-      {result.darkPoint > 0 && <SymbolTally sym="dp" count={result.darkPoint} size={size} />}
-    </span>
-  );
-}
-
 function rollDie(dieType) {
   const face = Math.floor(Math.random() * dieType.sides) + 1;
   return { face, symbols: dieType.faces[face] || [] };
@@ -437,6 +418,34 @@ function PoolIconStrip({ pool, size = 16 }) {
   );
 }
 
+// Per-die results readout for the shared roll log — one icon per die that
+// was actually rolled, immediately followed by the symbols it landed on.
+// Deliberately omits the numeric face value (e.g. "7:") — that level of
+// detail is accurate but more than a glance at the log needs; the symbols
+// are what matter at the table. Falls back to PoolIconStrip for older log
+// entries posted before this field existed (they only have entry.pool).
+function RollResultsStrip({ rolls, size = 16 }) {
+  if (!rolls || rolls.length === 0) return null;
+  return (
+    <span className="flex flex-wrap items-center gap-3">
+      {rolls.map((r, i) => {
+        const dt = DIE_TYPES.find((d) => d.key === r.die);
+        if (!dt) return null;
+        return (
+          <span key={i} className="flex items-center gap-1">
+            <DieFaceIcon img={dt.img} label={dt.label} size={size} />
+            {r.symbols && r.symbols.length ? (
+              r.symbols.map((s, si) => <SymbolIcon key={si} sym={s} size={size - 1} />)
+            ) : (
+              <span style={{ color: "#5a5f62" }}>—</span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 // Difficulty tier readout: Challenge dice count toward the same tier as
 // Difficulty dice (both represent the check's base difficulty — Challenge
 // is just Difficulty "upgraded" per FFG's dice-upgrade rule), so the tier
@@ -484,10 +493,12 @@ function DiceCounter({ dieType, count, onChange }) {
 
 const EMPTY_POOL = { proficiency: 0, ability: 0, boost: 0, challenge: 0, difficulty: 0, setback: 0, force: 0 };
 
-function DiceRollerPanel({ playerName, setPlayerName, preset }) {
+function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, destinyLive, destinyLightSweepOn, destinyDarkSweepOn, destinyLightDir, destinyDarkDir }) {
   const [pool, setPool] = useState(() => preset?.pool || EMPTY_POOL);
   const [loadedLabel, setLoadedLabel] = useState(preset?.label || null);
   const [lastResult, setLastResult] = useState(null);
+  const [selectedDifficultyPreset, setSelectedDifficultyPreset] = useState(null);
+  const [selectedManeuver, setSelectedManeuver] = useState(null);
   const [log, setLog] = useState([]);
   const [logStatus, setLogStatus] = useState({ status: "idle" });
   const pollRef = useRef(null);
@@ -548,24 +559,35 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
     if (preset) {
       setPool(preset.pool);
       setLoadedLabel(preset.label || null);
+      setSelectedDifficultyPreset(null);
+      setSelectedManeuver(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset?.nonce]);
 
   function updateDie(key, value) {
     setPool((p) => ({ ...p, [key]: value }));
+    if (key === "difficulty" || key === "challenge") setSelectedDifficultyPreset(null);
+    if (key === "boost" || key === "setback") setSelectedManeuver(null);
   }
 
-  function setDifficulty(count) {
-    setPool((p) => ({ ...p, difficulty: count }));
+  // The 9 purple difficulty buttons (5 Quick difficulty tiers + 4 range/
+  // melee presets) are a single mutually-exclusive group: picking one sets
+  // the Difficulty pool to exactly what it represents (clearing any prior
+  // Challenge-die upgrade, since that belonged to whichever tier was
+  // selected before) and marks it as the selected button.
+  function selectDifficultyPreset(id, count) {
+    setPool((p) => ({ ...p, difficulty: count, challenge: 0 }));
+    setSelectedDifficultyPreset(id);
   }
 
-  // Quick range/melee Difficulty add-ons — these ADD to whatever base
-  // Difficulty is already selected (e.g. from Quick difficulty), rather
-  // than overwriting it, so a range band stacks on top of the check's
-  // normal difficulty instead of replacing it.
-  function addDifficulty(n) {
-    setPool((p) => ({ ...p, difficulty: (p.difficulty || 0) + n }));
+  // The 4 Maneuver buttons (Aim/Double Aim/Called Shot/Double Called Shot)
+  // are also a single mutually-exclusive group — only one maneuver can be
+  // in effect at once, so picking one sets Boost/Setback to exactly what
+  // it represents (clearing the other) rather than stacking.
+  function selectManeuver(id, boost, setback) {
+    setPool((p) => ({ ...p, boost, setback }));
+    setSelectedManeuver(id);
   }
 
   // FFG "upgrade" rule: converts one Ability die into a Proficiency die.
@@ -600,6 +622,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
       player: (playerName || "Unnamed").slice(0, 40),
       poolLabel: poolLabel(pool),
       pool: { ...pool },
+      rolls: result.rolls.map((r) => ({ die: r.die, symbols: r.symbols })),
       netSuccess: result.netSuccess,
       netAdvantage: result.netAdvantage,
       triumph: result.triumph,
@@ -640,10 +663,31 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
 
   const forceDie = DIE_TYPES.find((d) => d.key === "force");
   const mainDice = DIE_TYPES.filter((d) => d.key !== "force");
+  const setbackDie = DIE_TYPES.find((d) => d.key === "setback");
+  const difficultyDie = DIE_TYPES.find((d) => d.key === "difficulty");
+  const boostDie = DIE_TYPES.find((d) => d.key === "boost");
 
   return (
     <div className="relative overflow-hidden border" style={{ borderColor: "#3a3f42", background: "#16191b", boxShadow: "0 0 30px rgba(94,200,216,0.06)" }}>
       <div className="p-5 sm:p-7">
+        {partyDestiny && (
+          <div className="border p-3 mb-4 flex items-center gap-6 flex-wrap" style={{ borderColor: "#ffb00055", background: "#ffb00009" }}>
+            <div className="text-[11px] tracking-[0.2em] uppercase flex items-center gap-1.5" style={{ color: "#ffb000" }}>
+              Party Destiny Pool
+              {destinyLive && (
+                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#6fae60" }} />
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <DestinyTokens count={partyDestiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={destinyLightDir} sweepColor="#8fd3f4" />
+              <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <DestinyTokens count={partyDestiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={destinyDarkDir} sweepColor="#c23b3b" />
+              <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
+            </div>
+          </div>
+        )}
         <div className="text-[11px] tracking-[0.25em] uppercase mb-1" style={{ color: "#5ec8d8" }}>SHARED SESSION TOOL</div>
         <h1 className="text-2xl sm:text-3xl uppercase tracking-wide mb-4" style={{ color: "#e7e2d2", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }}>
           Dice Roller
@@ -674,37 +718,100 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
         <div className="mb-3">
           <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Quick difficulty</div>
           <div className="flex items-center gap-2 flex-wrap">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setDifficulty(n)}
-                className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
-                style={{ color: "#8a5ec8", borderColor: "#8a5ec866" }}
-              >
-                {n} · {DIFFICULTY_TIER_NAMES[n]}
-              </button>
-            ))}
+            {[1, 2, 3, 4, 5].map((n) => {
+              const id = `quick-${n}`;
+              const active = selectedDifficultyPreset === id;
+              return (
+                <button
+                  key={n}
+                  onClick={() => selectDifficultyPreset(id, n)}
+                  className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
+                  style={active
+                    ? { background: "#8a5ec8", color: "#101315", borderColor: "#8a5ec8", fontWeight: 700 }
+                    : { color: "#8a5ec8", borderColor: "#8a5ec866" }}
+                >
+                  <span className="flex items-center gap-0.5">
+                    {Array.from({ length: n }, (_, i) => (
+                      <DieFaceIcon key={i} img={difficultyDie.img} label={difficultyDie.label} size={15} />
+                    ))}
+                  </span>
+                  · {DIFFICULTY_TIER_NAMES[n]}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         <div className="mb-3">
-          <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Add range/melee difficulty</div>
+          <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Range/melee difficulty</div>
           <div className="flex items-center gap-2 flex-wrap">
             {[
               { n: 2, label: "Melee" },
               { n: 1, label: "Short Range" },
               { n: 2, label: "Medium Range" },
               { n: 3, label: "Long Range" },
-            ].map(({ n, label }) => (
-              <button
-                key={label}
-                onClick={() => addDifficulty(n)}
-                className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
-                style={{ color: "#8a5ec8", borderColor: "#8a5ec866" }}
-              >
-                +{n} · {label}
-              </button>
-            ))}
+            ].map(({ n, label }) => {
+              const id = `range-${label}`;
+              const active = selectedDifficultyPreset === id;
+              return (
+                <button
+                  key={label}
+                  onClick={() => selectDifficultyPreset(id, n)}
+                  className="inline-flex items-center gap-1.5 text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
+                  style={active
+                    ? { background: "#8a5ec8", color: "#101315", borderColor: "#8a5ec8", fontWeight: 700 }
+                    : { color: "#8a5ec8", borderColor: "#8a5ec866" }}
+                >
+                  <span className="flex items-center gap-0.5">
+                    {Array.from({ length: n }, (_, i) => (
+                      <DieFaceIcon key={i} img={difficultyDie.img} label={difficultyDie.label} size={15} />
+                    ))}
+                  </span>
+                  · {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <div className="text-[10px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#5a5f62" }}>Maneuvers</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { id: "aim", boost: 1, setback: 0, label: "Aim", color: "#5ec8d8", tooltipDie: boostDie, tooltipCount: 1, tooltipPrefix: "Gain", tooltipSuffix: "on the next combat check" },
+              { id: "double-aim", boost: 2, setback: 0, label: "Double Aim", color: "#5ec8d8", tooltipDie: boostDie, tooltipCount: 2, tooltipPrefix: "Gain", tooltipSuffix: "on the next combat check" },
+              { id: "called-shot", boost: 0, setback: 2, label: "Called Shot", color: "#8a8f93", tooltipDie: setbackDie, tooltipCount: 2, tooltipPrefix: "Target a specific part of the target. The next combat check suffers" },
+              { id: "double-called-shot", boost: 0, setback: 1, label: "Double Called Shot", color: "#8a8f93", tooltipDie: setbackDie, tooltipCount: 1, tooltipPrefix: "Target a specific part of the target. The next combat check suffers" },
+            ].map(({ id, boost, setback, label, color, tooltipDie, tooltipCount, tooltipPrefix, tooltipSuffix }) => {
+              const active = selectedManeuver === id;
+              return (
+                <div key={id} className="relative group">
+                  <button
+                    onClick={() => selectManeuver(id, boost, setback)}
+                    className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5 border transition-colors"
+                    style={active
+                      ? { background: color, color: "#101315", borderColor: color, fontWeight: 700 }
+                      : { color, borderColor: `${color}66` }}
+                  >
+                    {label}
+                  </button>
+                  {tooltipCount > 0 && (
+                    <div
+                      className="hidden group-hover:flex absolute left-0 top-full mt-1.5 z-20 items-center flex-wrap gap-1.5 px-3 py-2 border normal-case text-left"
+                      style={{ width: 230, borderColor: "#3a3f42", background: "#101315", color: "#e7e2d2", fontSize: 11, lineHeight: 1.4, letterSpacing: "normal" }}
+                    >
+                      <span>{tooltipPrefix}</span>
+                      <span className="flex items-center gap-0.5 flex-shrink-0">
+                        {Array.from({ length: tooltipCount }, (_, i) => (
+                          <DieFaceIcon key={i} img={tooltipDie.img} label={tooltipDie.label} size={16} />
+                        ))}
+                      </span>
+                      {tooltipSuffix && <span>{tooltipSuffix}</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -723,7 +830,9 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                 fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
-              Ability → Proficiency
+              <span className="inline-flex items-center gap-1.5">
+                <img src={BLUE_TOKEN} alt="Light Side Destiny Point" style={{ width: 33, height: 33 }} /> (Ability → Proficiency)
+              </span>
             </button>
             <button
               onClick={upgradeDifficultyToChallenge}
@@ -737,7 +846,9 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                 fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
-              Difficulty → Challenge
+              <span className="inline-flex items-center gap-1.5">
+                <img src={RED_TOKEN} alt="Dark Side Destiny Point" style={{ width: 33, height: 33 }} /> (Difficulty → Challenge)
+              </span>
             </button>
           </div>
         </div>
@@ -752,7 +863,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
               Roll
             </button>
             <button
-              onClick={() => { setPool(EMPTY_POOL); setLoadedLabel(null); }}
+              onClick={() => { setPool(EMPTY_POOL); setLoadedLabel(null); setSelectedDifficultyPreset(null); setSelectedManeuver(null); }}
               className="text-[11px] tracking-[0.15em] uppercase px-4 py-2 border"
               style={{ color: "#8a8f93", borderColor: "#3a3f42" }}
             >
@@ -771,22 +882,6 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
         {difficultyTierLabel(pool) && (
           <div className="mb-5 -mt-3 text-[13px]" style={{ color: "#8a5ec8", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }}>
             {difficultyTierLabel(pool)}
-          </div>
-        )}
-
-        {lastResult && (
-          <div className="mb-5 p-3 border" style={{ borderColor: "#ffb00044", background: "#ffb00009" }}>
-            <div className="text-[11px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#ffb000" }}>Last roll</div>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {lastResult.rolls.map((r, i) => (
-                <span key={i} className="flex items-center gap-1.5 text-[12px] px-2 py-1 border" style={{ borderColor: "#2a2e31", color: "#e7e2d2" }}>
-                  <DieFaceIcon img={r.img} label={r.label} size={18} />
-                  {r.face}:
-                  {r.symbols.length ? r.symbols.map((s, si) => <SymbolIcon key={si} sym={s} size={15} />) : <span>—</span>}
-                </span>
-              ))}
-            </div>
-            <div className="text-[14px]" style={{ color: "#e7e2d2" }}><NetResultSummary result={lastResult} /></div>
           </div>
         )}
 
@@ -828,7 +923,9 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                     <span style={{ color: "#5ec8d8" }}>{entry.player}</span>
                     <span style={{ color: "#5a5f62" }}>{new Date(entry.ts).toLocaleTimeString()}</span>
                   </div>
-                  {entry.pool && (
+                  {entry.rolls && entry.rolls.length > 0 ? (
+                    <div className="mb-1.5"><RollResultsStrip rolls={entry.rolls} /></div>
+                  ) : entry.pool && (
                     <div className="mb-1.5">
                       <PoolIconStrip pool={entry.pool} />
                     </div>
@@ -837,7 +934,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset }) {
                     {entry.netSuccess !== 0 ? (
                       <SymbolTally sym={entry.netSuccess > 0 ? "s" : "f"} count={Math.abs(entry.netSuccess)} size={42} withLabel fontSize={22} />
                     ) : (
-                      <span style={{ fontSize: 22 }} className="mono-num">0 net</span>
+                      <span style={{ fontSize: 22, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>Failure</span>
                     )}
                     {entry.netAdvantage !== 0 && (
                       <SymbolTally sym={entry.netAdvantage > 0 ? "a" : "t"} count={Math.abs(entry.netAdvantage)} size={42} withLabel fontSize={22} />
@@ -1115,6 +1212,10 @@ export default function CampaignDashboard() {
       label: `${characterName} — ${skill.name}`,
       nonce: diceSeedRef.current,
     });
+    // Jumping to the roller from a skill click means "I'm rolling as this
+    // character" — auto-fill Your Name so the shared log attributes it
+    // correctly without the player having to type it themselves.
+    if (characterName) setPlayerName(characterName);
     setViewMode("dice");
   }
 
@@ -1431,7 +1532,17 @@ export default function CampaignDashboard() {
         )}
 
         {viewMode === "dice" ? (
-          <DiceRollerPanel playerName={playerName} setPlayerName={setPlayerName} preset={dicePreset} />
+          <DiceRollerPanel
+            playerName={playerName}
+            setPlayerName={setPlayerName}
+            preset={dicePreset}
+            partyDestiny={partyDestinyRaw || { light: 0, dark: 0 }}
+            destinyLive={!partyDestinyUnknown}
+            destinyLightSweepOn={destinyLightSweepOn}
+            destinyDarkSweepOn={destinyDarkSweepOn}
+            destinyLightDir={lc.destinyLightDir}
+            destinyDarkDir={lc.destinyDarkDir}
+          />
         ) : viewMode === "npc" ? (
           <NPCSummaryPanel npcs={ledger.npcs || []} />
         ) : viewMode === "party" ? (
