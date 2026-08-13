@@ -272,5 +272,31 @@
       "summary": "Source, involuntarily, of the encrypted bounty puck and comm now held by Carsk.",
       "whatPartyKnows": "Whatever the comm and puck contain hasn't been fully exploited yet."
     }
+  ],
+  "locations": [
+    {
+      "name": "The Origin World",
+      "type": "Planet",
+      "current": true,
+      "summary": "Ash-and-rust world holding the buried research dome the crew is currently exploring — the site of the original Imperial containment operation."
+    },
+    {
+      "name": "Wayfarer's Debt",
+      "type": "Ship",
+      "current": true,
+      "summary": "Modified Ghtroc 720 Light Freighter, the crew's ship — currently hovering on repulsors about 400m out from the dome with engines live."
+    },
+    {
+      "name": "Wreckfall Nine",
+      "type": "Settlement",
+      "current": false,
+      "summary": "Where the crew picked up Lt. Vossk's four-person team before heading out to the origin site."
+    },
+    {
+      "name": "Long Wake",
+      "type": "Ship",
+      "current": false,
+      "summary": "Commander Ilyra Dane's ship, where the crew sold recovered salvage from the Harbinger incident in exchange for the origin-site coordinates."
+    }
   ]
 }
