@@ -670,7 +670,107 @@ function DiceCounter({ dieType, count, onChange, max = MAX_DICE_PER_TYPE }) {
 
 const EMPTY_POOL = { proficiency: 0, ability: 0, boost: 0, challenge: 0, difficulty: 0, setback: 0, force: 0 };
 
-function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, destinyLive, destinyLightSweepOn, destinyDarkSweepOn, destinyLightDir, destinyDarkDir }) {
+// --- Initiative tracker -----------------------------------------------------
+// Small combat-order strip, GM-maintained via live.json's "initiative" field
+// (fetched through the same /live proxy as Wounds/Strain/Destiny — see
+// CampaignDashboard's fetchLiveOverlay). Schema is deliberately plain text so
+// it's easy to hand-edit turn by turn:
+//   "initiative": {
+//     "round": 3,
+//     "current": ["pc", "npc", "pc", "npc"],   // remaining turn order this round, soonest first
+//     "next": ["npc", "pc", "npc", "pc", "pc"], // preview of next round's order (optional)
+//     "updatedAt": "2026-08-14T20:15:00Z"        // bump this every edit — drives the flash
+//   }
+// Workflow: as each turn resolves, drop the front entry of "current" (so the
+// New Round marker — rendered right after current's last entry — visually
+// marches from right to left as the round plays out) and bump updatedAt.
+// When "current" empties, promote "next" to "current" (with a fresh "next"
+// for the round after that, if known) and increment "round" — the marker
+// snaps back out to the far right of a full row again.
+function InitiativeBox({ kind, dim, breathe }) {
+  const isPC = String(kind).toLowerCase() === "pc";
+  return (
+    <div
+      className={`flex items-center justify-center text-[10px] flex-shrink-0 ${breathe ? "init-breathe" : ""}`}
+      style={{
+        width: 30, height: 30,
+        background: isPC ? "#3b82c2" : "#c23b3b",
+        color: "#0d0f10",
+        fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+        letterSpacing: "0.03em",
+        opacity: dim ? 0.4 : 1,
+        border: breathe ? "1px solid #e7e2d2" : "1px solid rgba(0,0,0,0.35)",
+      }}
+    >
+      {isPC ? "PC" : "NPC"}
+    </div>
+  );
+}
+
+function InitiativeTracker({ initiative }) {
+  const [flash, setFlash] = useState(false);
+  const flashTimerRef = useRef(null);
+  const prevKeyRef = useRef(null);
+
+  useEffect(() => {
+    if (!initiative) return;
+    const key = JSON.stringify([initiative.round, initiative.current, initiative.next, initiative.updatedAt]);
+    if (prevKeyRef.current !== null && prevKeyRef.current !== key) {
+      setFlash(true);
+      clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => setFlash(false), 1100);
+    }
+    prevKeyRef.current = key;
+  }, [initiative]);
+
+  useEffect(() => () => clearTimeout(flashTimerRef.current), []);
+
+  const current = Array.isArray(initiative?.current) ? initiative.current : [];
+  const next = Array.isArray(initiative?.next) ? initiative.next : [];
+  if (current.length === 0 && next.length === 0) return null;
+
+  return (
+    <div
+      className="border p-3 mb-4"
+      style={{
+        borderColor: "#3a3f42",
+        background: "#101315",
+        transition: "box-shadow 0.3s ease-out",
+        boxShadow: flash ? "0 0 22px 4px rgba(94,200,216,0.55)" : "0 0 0 0 rgba(94,200,216,0)",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[11px] tracking-[0.2em] uppercase" style={{ color: "#5ec8d8" }}>
+          Initiative{initiative?.round ? ` — Round ${initiative.round}` : ""}
+        </span>
+        <span className="w-1.5 h-1.5 rounded-full inline-block live-dot" style={{ background: "#6fae60" }} />
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {current.map((kind, i) => (
+          <InitiativeBox key={`c${i}`} kind={kind} breathe={i === 0} />
+        ))}
+        <div
+          className="flex flex-col items-center justify-center flex-shrink-0 leading-none"
+          style={{
+            width: 34, height: 30,
+            border: "2px dashed #ffb000",
+            color: "#ffb000",
+            fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+            fontSize: 8, letterSpacing: "0.03em",
+          }}
+        >
+          <span>NEW</span>
+          <span>RND</span>
+        </div>
+        {next.map((kind, i) => (
+          <InitiativeBox key={`n${i}`} kind={kind} dim />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, destinyLive, destinyLightSweepOn, destinyDarkSweepOn, destinyLightDir, destinyDarkDir, initiative }) {
   const [pool, setPool] = useState(() => preset?.pool || EMPTY_POOL);
   const [loadedLabel, setLoadedLabel] = useState(preset?.label || null);
   const [lastResult, setLastResult] = useState(null);
@@ -882,6 +982,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
   return (
     <div className="relative overflow-hidden border" style={{ borderColor: "#3a3f42", background: "#16191b", boxShadow: "0 0 30px rgba(94,200,216,0.06)" }}>
       <div className="p-5 sm:p-7">
+        <InitiativeTracker initiative={initiative} />
         {partyDestiny && (
           <div className="border p-3 mb-4 flex items-center gap-6 flex-wrap" style={{ borderColor: "#ffb00055", background: "#ffb00009" }}>
             <div className="text-[11px] tracking-[0.2em] uppercase flex items-center gap-1.5" style={{ color: "#ffb000" }}>
@@ -1798,10 +1899,12 @@ export default function CampaignDashboard() {
         @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes sweepUp { 0% { clip-path: inset(100% 0 0 0); opacity: 1; } 55% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
         @keyframes sweepDown { 0% { clip-path: inset(0 0 100% 0); opacity: 1; } 55% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+        @keyframes initBreathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(1.08); } }
         .boot-scan { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #5ec8d8, transparent); animation: scan 0.65s ease-out forwards; pointer-events: none; }
         .flicker-in { animation: flicker 1.4s ease-out; }
         .mono-num { font-variant-numeric: tabular-nums; }
         .live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+        .init-breathe { animation: initBreathe 2.6s ease-in-out infinite; }
       `}</style>
 
       <div className="w-full max-w-3xl">
@@ -1958,6 +2061,7 @@ export default function CampaignDashboard() {
             destinyDarkSweepOn={destinyDarkSweepOn}
             destinyLightDir={lc.destinyLightDir}
             destinyDarkDir={lc.destinyDarkDir}
+            initiative={live.initiative}
           />
         ) : viewMode === "npc" ? (
           <NPCSummaryPanel npcs={ledger.npcs || []} />
