@@ -673,33 +673,35 @@ const EMPTY_POOL = { proficiency: 0, ability: 0, boost: 0, challenge: 0, difficu
 // --- Initiative tracker -----------------------------------------------------
 // Small combat-order strip, GM-maintained via live.json's "initiative" field
 // (fetched through the same /live proxy as Wounds/Strain/Destiny — see
-// CampaignDashboard's fetchLiveOverlay). Schema is deliberately plain text so
-// it's easy to hand-edit turn by turn:
-//   "initiative": {
-//     "round": 3,
-//     "current": ["pc", "npc", "pc", "npc"],   // remaining turn order this round, soonest first
-//     "next": ["npc", "pc", "npc", "pc", "pc"], // preview of next round's order (optional)
-//     "updatedAt": "2026-08-14T20:15:00Z"        // bump this every edit — drives the flash
-//   }
-// Workflow: as each turn resolves, drop the front entry of "current" (so the
-// New Round marker — rendered right after current's last entry — visually
-// marches from right to left as the round plays out) and bump updatedAt.
-// When "current" empties, promote "next" to "current" (with a fresh "next"
-// for the round after that, if known) and increment "round" — the marker
-// snaps back out to the far right of a full row again.
-function InitiativeBox({ kind, dim, breathe }) {
+// CampaignDashboard's fetchLiveOverlay). Schema is deliberately minimal —
+// two fields, no round counter, no timestamp:
+//   "initiative": { "order": ["pc", "npc", "pc", "npc"], "taken": 2 }
+// "order" is the FIXED initiative order for the whole encounter (per the
+// table's own rules, slots are unnamed PC/NPC seats rolled once and reused
+// every round — it never needs to be reshuffled turn to turn). "taken" is
+// just how many seats, counting from the front, have already gone this
+// round. Update workflow is a single number: increment "taken" by 1 after
+// each turn; when it reaches order.length, wrap it back to 0 for the new
+// round — same order, no rewriting the array. The UI turns that one number
+// into the whole display: acted seats render darkened, the seat at index
+// "taken" is the one up now (highlighted + breathing), everything after is
+// still bright and waiting. A wrap back to 0 (taken decreasing) reads as a
+// full round completing and flashes gold instead of the usual cyan "this
+// just updated" flash.
+function InitiativeBox({ kind, spent, active }) {
   const isPC = String(kind).toLowerCase() === "pc";
+  const baseColor = isPC ? "#3b82c2" : "#c23b3b";
   return (
     <div
-      className={`flex items-center justify-center text-[10px] flex-shrink-0 ${breathe ? "init-breathe" : ""}`}
+      className={`flex items-center justify-center text-[10px] flex-shrink-0 ${active ? "init-breathe" : ""}`}
       style={{
         width: 30, height: 30,
-        background: isPC ? "#3b82c2" : "#c23b3b",
-        color: "#0d0f10",
+        background: spent ? "#2a2e31" : baseColor,
+        color: spent ? "#5a5f62" : "#0d0f10",
         fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
         letterSpacing: "0.03em",
-        opacity: dim ? 0.4 : 1,
-        border: breathe ? "1px solid #e7e2d2" : "1px solid rgba(0,0,0,0.35)",
+        transition: "background 0.4s ease-out, color 0.4s ease-out",
+        border: active ? "1px solid #e7e2d2" : `1px solid ${spent ? "#3a3f42" : "rgba(0,0,0,0.35)"}`,
       }}
     >
       {isPC ? "PC" : "NPC"}
@@ -708,26 +710,35 @@ function InitiativeBox({ kind, dim, breathe }) {
 }
 
 function InitiativeTracker({ initiative }) {
-  const [flash, setFlash] = useState(false);
+  const [flashColor, setFlashColor] = useState(null);
   const flashTimerRef = useRef(null);
-  const prevKeyRef = useRef(null);
+  const prevRef = useRef(null);
+
+  const order = Array.isArray(initiative?.order) ? initiative.order : [];
+  const takenRaw = Number(initiative?.taken);
+  const taken = order.length ? Math.min(Math.max(0, Number.isFinite(takenRaw) ? takenRaw : 0), order.length) : 0;
 
   useEffect(() => {
-    if (!initiative) return;
-    const key = JSON.stringify([initiative.round, initiative.current, initiative.next, initiative.updatedAt]);
-    if (prevKeyRef.current !== null && prevKeyRef.current !== key) {
-      setFlash(true);
-      clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlash(false), 1100);
+    if (!initiative || order.length === 0) return;
+    const orderKey = JSON.stringify(order);
+    const prev = prevRef.current;
+    if (prev !== null) {
+      const changed = prev.orderKey !== orderKey || prev.taken !== taken;
+      if (changed) {
+        setFlashColor(taken < prev.taken ? "gold" : "cyan");
+        clearTimeout(flashTimerRef.current);
+        flashTimerRef.current = setTimeout(() => setFlashColor(null), 1100);
+      }
     }
-    prevKeyRef.current = key;
+    prevRef.current = { orderKey, taken };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initiative]);
 
   useEffect(() => () => clearTimeout(flashTimerRef.current), []);
 
-  const current = Array.isArray(initiative?.current) ? initiative.current : [];
-  const next = Array.isArray(initiative?.next) ? initiative.next : [];
-  if (current.length === 0 && next.length === 0) return null;
+  if (order.length === 0) return null;
+
+  const glow = flashColor === "gold" ? "255,176,0" : flashColor === "cyan" ? "94,200,216" : null;
 
   return (
     <div
@@ -736,34 +747,18 @@ function InitiativeTracker({ initiative }) {
         borderColor: "#3a3f42",
         background: "#101315",
         transition: "box-shadow 0.3s ease-out",
-        boxShadow: flash ? "0 0 22px 4px rgba(94,200,216,0.55)" : "0 0 0 0 rgba(94,200,216,0)",
+        boxShadow: glow ? `0 0 22px 4px rgba(${glow},0.55)` : "0 0 0 0 rgba(0,0,0,0)",
       }}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[11px] tracking-[0.2em] uppercase" style={{ color: "#5ec8d8" }}>
-          Initiative{initiative?.round ? ` — Round ${initiative.round}` : ""}
+          Initiative
         </span>
         <span className="w-1.5 h-1.5 rounded-full inline-block live-dot" style={{ background: "#6fae60" }} />
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
-        {current.map((kind, i) => (
-          <InitiativeBox key={`c${i}`} kind={kind} breathe={i === 0} />
-        ))}
-        <div
-          className="flex flex-col items-center justify-center flex-shrink-0 leading-none"
-          style={{
-            width: 34, height: 30,
-            border: "2px dashed #ffb000",
-            color: "#ffb000",
-            fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-            fontSize: 8, letterSpacing: "0.03em",
-          }}
-        >
-          <span>NEW</span>
-          <span>RND</span>
-        </div>
-        {next.map((kind, i) => (
-          <InitiativeBox key={`n${i}`} kind={kind} dim />
+        {order.map((kind, i) => (
+          <InitiativeBox key={i} kind={kind} spent={i < taken} active={i === taken} />
         ))}
       </div>
     </div>
