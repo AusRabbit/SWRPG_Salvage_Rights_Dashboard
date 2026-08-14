@@ -7,7 +7,7 @@
 const OWNER = "AusRabbit";
 const REPO = "SWRPG_Salvage_Rights_Dashboard";
 const PATH = "data/live.json";
-const CACHE_SECONDS = 10;
+const CACHE_SECONDS = 3;
 
 async function handleLive(request, env, ctx) {
   const cache = caches.default;
