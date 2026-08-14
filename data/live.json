@@ -5,7 +5,7 @@
   "initiative": {
     "round": 1,
     "current": ["pc", "npc", "pc", "npc"],
-    "next": [],
+    "next": ["pc", "npc", "pc", "npc"],
     "updatedAt": "2026-08-14T00:00:00Z",
     "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger"
   }
