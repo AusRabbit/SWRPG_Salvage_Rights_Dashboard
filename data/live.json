@@ -3,9 +3,10 @@
   "wounds": { "kess": 3, "carsk": 4, "rethven": 2 },
   "strain": { "kess": 1, "carsk": 7, "rethven": 2 },
   "initiative": {
-    "round": 2,
+    "round": 1,
     "current": ["pc", "npc", "pc", "npc"],
-    "next": ["npc", "pc", "pc", "npc", "npc"],
-    "updatedAt": "2026-08-14T00:00:00Z"
+    "next": [],
+    "updatedAt": "2026-08-14T00:00:00Z",
+    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger"
   }
 }
