@@ -4,7 +4,7 @@
   "strain": { "kess": 1, "carsk": 7, "rethven": 2 },
   "initiative": {
     "order": ["pc", "pc", "npc", "npc", "pc"],
-    "taken": 1,
-    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger — slot 1 (PC) taken"
+    "taken": 2,
+    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger — slot 2 (PC) taken"
   }
 }
