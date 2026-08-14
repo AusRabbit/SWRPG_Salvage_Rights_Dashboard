@@ -4,9 +4,9 @@
   "strain": { "kess": 1, "carsk": 7, "rethven": 2 },
   "initiative": {
     "round": 1,
-    "current": ["npc", "pc", "npc"],
+    "current": ["pc", "npc"],
     "next": ["pc", "npc", "pc", "npc"],
     "updatedAt": "2026-08-14T00:00:00Z",
-    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger — slot 1 (PC) advanced"
+    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger — slot 2 (NPC) advanced"
   }
 }
