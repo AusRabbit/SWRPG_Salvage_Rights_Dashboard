@@ -13,7 +13,7 @@
         "soak": 3,
         "criticalInjuries": []
       },
-      "xp": { "available": 10, "total": 0 },
+      "xp": { "available": 15, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
@@ -67,7 +67,7 @@
         "soak": 5,
         "criticalInjuries": []
       },
-      "xp": { "available": 0, "total": 0 },
+      "xp": { "available": 5, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Party sale proceeds", "note": "35,000 credits held in a shared party pool, allocation unverified" },
@@ -119,7 +119,7 @@
         "soak": 3,
         "criticalInjuries": []
       },
-      "xp": { "available": 5, "total": 0 },
+      "xp": { "available": 10, "total": 0 },
       "credits": 0,
       "inventory": [
         { "name": "Findsman's Kit", "note": "Ritual tools blended with a jury-rigged sensor array — an improvised long-range environmental scanner built and rebuilt from salvaged parts" },
