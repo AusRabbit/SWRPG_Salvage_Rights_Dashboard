@@ -3,8 +3,7 @@
   "wounds": { "kess": 3, "carsk": 4, "rethven": 2 },
   "strain": { "kess": 1, "carsk": 7, "rethven": 2 },
   "initiative": {
-    "order": ["pc", "npc", "pc", "npc", "npc", "pc"],
-    "taken": 0,
-    "note": "TEST COMBAT — Corridor Skirmish — not part of campaign ledger — new round, taken reset to 0"
+    "order": [],
+    "taken": 0
   }
 }
