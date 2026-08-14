@@ -32,11 +32,17 @@
       "skills": [
         { "name": "Astrogation", "rank": 1, "career": true },
         { "name": "Computers", "rank": 2, "career": true },
+        { "name": "Coordination", "rank": 0, "career": true },
+        { "name": "Discipline", "rank": 0, "career": true },
+        { "name": "Gunnery", "rank": 0, "career": true },
         { "name": "Knowledge: Outer Rim", "rank": 1, "career": true },
+        { "name": "Knowledge: Xenology", "rank": 0, "career": true },
         { "name": "Mechanics", "rank": 2, "career": true },
         { "name": "Perception", "rank": 1, "career": true },
+        { "name": "Piloting: Planetary", "rank": 0, "career": true },
         { "name": "Piloting: Space", "rank": 2, "career": true },
-        { "name": "Ranged: Light", "rank": 1, "career": false }
+        { "name": "Ranged: Light", "rank": 1, "career": false },
+        { "name": "Streetwise", "rank": 0, "career": true }
       ],
       "talents": [
         { "name": "Clever Retort", "rank": 1, "tier": 1, "description": "Once per encounter, add two automatic Threat to another character's social check." },
@@ -84,8 +90,12 @@
       "characteristics": { "brawn": 3, "agility": 3, "intellect": 2, "cunning": 3, "willpower": 3, "presence": 2 },
       "skills": [
         { "name": "Athletics", "rank": 2, "career": true },
+        { "name": "Brawl", "rank": 0, "career": true },
         { "name": "Discipline", "rank": 1, "career": true },
+        { "name": "Gunnery", "rank": 0, "career": true },
+        { "name": "Melee", "rank": 0, "career": true },
         { "name": "Perception", "rank": 3, "career": true },
+        { "name": "Piloting: Planetary", "rank": 0, "career": true },
         { "name": "Ranged: Heavy", "rank": 2, "career": true },
         { "name": "Ranged: Light", "rank": 1, "career": true },
         { "name": "Resilience", "rank": 1, "career": true },
@@ -139,7 +149,10 @@
       "characteristics": { "brawn": 2, "agility": 3, "intellect": 3, "cunning": 3, "willpower": 3, "presence": 2 },
       "skills": [
         { "name": "Astrogation", "rank": 1, "career": true },
+        { "name": "Athletics", "rank": 0, "career": true },
+        { "name": "Cool", "rank": 0, "career": true },
         { "name": "Discipline", "rank": 1, "career": true },
+        { "name": "Knowledge: Education", "rank": 0, "career": true },
         { "name": "Knowledge: Lore", "rank": 1, "career": true },
         { "name": "Knowledge: Outer Rim", "rank": 1, "career": true },
         { "name": "Knowledge: Xenology", "rank": 1, "career": true },
