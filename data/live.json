@@ -2,6 +2,7 @@
   "destiny": { "light": 2, "dark": 1 },
   "wounds": { "kess": 3, "carsk": 4, "rethven": 2 },
   "strain": { "kess": 1, "carsk": 7, "rethven": 2 },
+  "criticalInjuries": { "kess": [], "carsk": [], "rethven": [] },
   "initiative": {
     "order": [],
     "taken": 0

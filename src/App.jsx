@@ -282,11 +282,20 @@ function lookupCriticalInjury(text) {
   return CRITICAL_INJURY_TABLE.find((r) => lower.includes(r.name.toLowerCase())) || null;
 }
 
+// Turns a raw Table 6-10 roll result (a plain number, as recorded live in
+// data/live.json — see applyLiveOverlay) into the same "NN - Name" text
+// format the static ledger.json entries already use, so both render through
+// the same CriticalInjuryTile.
+function criticalInjuryTextFromNumber(n) {
+  const match = CRITICAL_INJURY_TABLE.find((r) => n >= r.min && n <= r.max);
+  return match ? `${n} - ${match.name}` : `Critical Injury ${n}`;
+}
+
 // Selectable tile for one Critical Injury — click to expand the full
 // Table 6-10 effect text (if the injury matches a known table result).
 // GM-authored injuries with no match just show their recorded text with no
 // expandable detail.
-function CriticalInjuryTile({ text }) {
+function CriticalInjuryTile({ text, live }) {
   const [expanded, setExpanded] = useState(false);
   const match = lookupCriticalInjury(text);
   return (
@@ -296,7 +305,16 @@ function CriticalInjuryTile({ text }) {
       style={{ borderColor: "#c23b3b44", background: expanded ? "#c23b3b1a" : "#c23b3b0d" }}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[13px]" style={{ color: "#e7e2d2" }}>▸ {text}</span>
+        <span className="text-[13px] flex items-center gap-1.5" style={{ color: "#e7e2d2" }}>
+          ▸ {text}
+          {live && (
+            <span
+              className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0"
+              style={{ background: "#6fae60", boxShadow: "0 0 4px #6fae6099" }}
+              title="Live-tracked — not yet consolidated into the ledger"
+            />
+          )}
+        </span>
         <span className="flex items-center gap-2 flex-shrink-0">
           {match && (
             <span className="text-[10px] tracking-[0.15em] uppercase px-1.5 py-0.5" style={{ color: "#c23b3b", border: "1px solid #c23b3b66" }}>
@@ -502,7 +520,8 @@ function formatRollForClipboard(entry) {
   else if (entry.netAdvantage < 0) parts.push(`${Math.abs(entry.netAdvantage)} Threat`);
   if (entry.triumph > 0) parts.push(`${entry.triumph} Triumph`);
   if (entry.despair > 0) parts.push(`${entry.despair} Despair`);
-  return `${entry.player || "Unnamed"}: ${parts.join(", ")}`;
+  const base = `${entry.player || "Unnamed"}: ${parts.join(", ")}`;
+  return entry.weaponNote ? `${base} (${entry.weaponNote})` : base;
 }
 
 // Custom "new roll landed in the shared log" sound — Cameron's own uploaded
@@ -515,6 +534,9 @@ const ROLL_SOUNDS = [
   "/sounds/dice-roll-d.wav",
   "/sounds/dice-roll-e.wav",
   "/sounds/dice-roll-f.wav",
+  "/sounds/dice-roll-g.wav",
+  "/sounds/dice-roll-h.wav",
+  "/sounds/dice-roll-i.wav",
 ];
 
 function playRandomRollSound() {
@@ -701,17 +723,23 @@ const EMPTY_POOL = { proficiency: 0, ability: 0, boost: 0, challenge: 0, difficu
 function InitiativeBox({ kind, spent, active }) {
   const isPC = String(kind).toLowerCase() === "pc";
   const baseColor = isPC ? "#3b82c2" : "#c23b3b";
+  // Spent seats stay tinted with their PC/NPC hue instead of going flat
+  // grey — a heavily darkened version of the same blue/red so "used" is
+  // still readable as PC or NPC at a glance, not just from the letters.
+  const spentBg = isPC ? "#0f1f2c" : "#2c0f0f";
+  const spentText = isPC ? "#3d6485" : "#85403d";
+  const spentBorder = isPC ? "#1c3247" : "#471c1c";
   return (
     <div
       className={`flex items-center justify-center text-[10px] flex-shrink-0 ${active ? "init-breathe" : ""}`}
       style={{
         width: 30, height: 30,
-        background: spent ? "#2a2e31" : baseColor,
-        color: spent ? "#5a5f62" : "#0d0f10",
+        background: spent ? spentBg : baseColor,
+        color: spent ? spentText : "#0d0f10",
         fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
         letterSpacing: "0.03em",
         transition: "background 0.4s ease-out, color 0.4s ease-out",
-        border: active ? "1px solid #e7e2d2" : `1px solid ${spent ? "#3a3f42" : "rgba(0,0,0,0.35)"}`,
+        border: active ? "1px solid #e7e2d2" : `1px solid ${spent ? spentBorder : "rgba(0,0,0,0.35)"}`,
       }}
     >
       {isPC ? "PC" : "NPC"}
@@ -778,9 +806,31 @@ function InitiativeTracker({ initiative }) {
 function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, destinyLive, destinyLightSweepOn, destinyDarkSweepOn, destinyLightDir, destinyDarkDir, initiative }) {
   const [pool, setPool] = useState(() => preset?.pool || EMPTY_POOL);
   const [loadedLabel, setLoadedLabel] = useState(preset?.label || null);
+  // Weapon Special text (e.g. "Pierce 2, Vicious 1"), only set when the
+  // current preset came from clicking a weapon row — carried through to
+  // the posted roll-log entry so it can show as its own small tag on the
+  // entry (see handleRoll and the log entry render below) and gets folded
+  // into the copied clipboard text too.
+  const [loadedWeaponNote, setLoadedWeaponNote] = useState(preset?.weaponNote || null);
   const [lastResult, setLastResult] = useState(null);
   const [selectedDifficultyPreset, setSelectedDifficultyPreset] = useState(null);
   const [selectedManeuver, setSelectedManeuver] = useState(null);
+  // Per-click history of what the upgrade buttons actually did, so the
+  // downgrade buttons can undo the exact most recent step rather than
+  // guess from the pool totals alone. FFG RAW: to upgrade a die, exchange
+  // one die for the next die up (Ability→Proficiency, Difficulty→
+  // Challenge); if there's no die of the base type left to upgrade, add a
+  // die of that base type to the pool instead (it is NOT immediately
+  // upgraded — a later click converts it once it's actually present). That
+  // means repeated clicking past zero alternates "add" / "convert", and
+  // once both the base and upgraded type are non-zero there's no way to
+  // tell from the pool counts alone which action was most recent — hence
+  // the stack. Each entry is "convert" or "add"; reset to [] whenever the
+  // pool changes some other way (manual counter edit, a difficulty-preset
+  // pick that force-resets Challenge, Clear pool, or loading a skill/
+  // weapon preset), since at that point there's no reliable history left.
+  const [abilityUpgradeStack, setAbilityUpgradeStack] = useState([]);
+  const [difficultyUpgradeStack, setDifficultyUpgradeStack] = useState([]);
   const [log, setLog] = useState([]);
   const [logStatus, setLogStatus] = useState({ status: "idle" });
   const pollRef = useRef(null);
@@ -848,8 +898,11 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
     if (preset) {
       setPool(preset.pool);
       setLoadedLabel(preset.label || null);
+      setLoadedWeaponNote(preset.weaponNote || null);
       setSelectedDifficultyPreset(null);
       setSelectedManeuver(null);
+      setAbilityUpgradeStack([]);
+      setDifficultyUpgradeStack([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset?.nonce]);
@@ -858,6 +911,11 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
     setPool((p) => ({ ...p, [key]: Math.max(0, Math.min(MAX_DICE_PER_TYPE, value)) }));
     if (key === "difficulty" || key === "challenge") setSelectedDifficultyPreset(null);
     if (key === "boost" || key === "setback") setSelectedManeuver(null);
+    // A manual edit to any of the 4 dice types the upgrade/downgrade
+    // buttons touch invalidates the upgrade-history stack — reset it
+    // rather than risk the downgrade button acting on stale info.
+    if (key === "ability" || key === "proficiency") setAbilityUpgradeStack([]);
+    if (key === "difficulty" || key === "challenge") setDifficultyUpgradeStack([]);
   }
 
   // The 9 purple difficulty buttons (5 Quick difficulty tiers + 4 range/
@@ -868,6 +926,9 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
   function selectDifficultyPreset(id, count) {
     setPool((p) => ({ ...p, difficulty: Math.min(MAX_DICE_PER_TYPE, count), challenge: 0 }));
     setSelectedDifficultyPreset(id);
+    // Challenge is force-reset to 0 here, so any upgrade-history for it
+    // is moot.
+    setDifficultyUpgradeStack([]);
   }
 
   // The 4 Maneuver buttons (Aim/Double Aim/Called Shot/Double Called Shot)
@@ -879,36 +940,104 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
     setSelectedManeuver(id);
   }
 
-  // FFG "upgrade" rule: converts one Ability die into a Proficiency die.
+  // FFG "upgrade" rule: to upgrade a die, exchange one die for the next
+  // die up (Ability→Proficiency). If there is no Ability die in the pool
+  // to upgrade, add an Ability die to the pool instead — it is NOT
+  // immediately converted; a later upgrade click converts it once it's
+  // actually present. Each click's action ("convert" or "add") is pushed
+  // onto abilityUpgradeStack so downgrade can undo precisely.
   function upgradeAbilityToProficiency() {
-    setPool((p) => {
-      if ((p.ability || 0) <= 0 || (p.proficiency || 0) >= MAX_DICE_PER_TYPE) return p;
-      return { ...p, ability: p.ability - 1, proficiency: (p.proficiency || 0) + 1 };
-    });
+    if ((pool.ability || 0) > 0) {
+      if ((pool.proficiency || 0) >= MAX_DICE_PER_TYPE) return;
+      setPool((p) => ({ ...p, ability: p.ability - 1, proficiency: (p.proficiency || 0) + 1 }));
+      setAbilityUpgradeStack((st) => [...st, "convert"]);
+    } else {
+      if ((pool.ability || 0) >= MAX_DICE_PER_TYPE) return;
+      setPool((p) => ({ ...p, ability: (p.ability || 0) + 1 }));
+      setAbilityUpgradeStack((st) => [...st, "add"]);
+    }
   }
 
-  // FFG "upgrade" rule: converts one Difficulty die into a Challenge die.
+  // Same rule for Difficulty → Challenge.
   function upgradeDifficultyToChallenge() {
-    setPool((p) => {
-      if ((p.difficulty || 0) <= 0 || (p.challenge || 0) >= MAX_DICE_PER_TYPE) return p;
-      return { ...p, difficulty: p.difficulty - 1, challenge: (p.challenge || 0) + 1 };
-    });
+    if ((pool.difficulty || 0) > 0) {
+      if ((pool.challenge || 0) >= MAX_DICE_PER_TYPE) return;
+      setPool((p) => ({ ...p, difficulty: p.difficulty - 1, challenge: (p.challenge || 0) + 1 }));
+      setDifficultyUpgradeStack((st) => [...st, "convert"]);
+    } else {
+      if ((pool.difficulty || 0) >= MAX_DICE_PER_TYPE) return;
+      setPool((p) => ({ ...p, difficulty: (p.difficulty || 0) + 1 }));
+      setDifficultyUpgradeStack((st) => [...st, "add"]);
+    }
   }
 
   // Undo one step of an upgrade mis-click. Pool-only, same as the upgrade
-  // functions above — never touches the destiny pool.
+  // functions above — never touches the destiny pool. Pops the most
+  // recent tracked action and reverses exactly that: "convert" gives the
+  // die back to the base type, "add" just removes the die that was added.
+  // Once the pool counts alone can no longer distinguish add from convert
+  // (both Ability and Proficiency non-zero), the stack is what makes this
+  // reliable rather than a guess. With no tracked history left — e.g. the
+  // character's own innate Proficiency from the loaded skill, which was
+  // never produced by a click — falls back to the plain reverse.
   function downgradeProficiencyToAbility() {
-    setPool((p) => {
-      if ((p.proficiency || 0) <= 0 || (p.ability || 0) >= MAX_DICE_PER_TYPE) return p;
-      return { ...p, proficiency: p.proficiency - 1, ability: (p.ability || 0) + 1 };
-    });
+    if (abilityUpgradeStack.length > 0) {
+      const last = abilityUpgradeStack[abilityUpgradeStack.length - 1];
+      if (last === "convert") {
+        if ((pool.proficiency || 0) <= 0) return;
+        setPool((p) => ({ ...p, proficiency: p.proficiency - 1, ability: (p.ability || 0) + 1 }));
+      } else {
+        if ((pool.ability || 0) <= 0) return;
+        setPool((p) => ({ ...p, ability: p.ability - 1 }));
+      }
+      setAbilityUpgradeStack((st) => st.slice(0, -1));
+      return;
+    }
+    if ((pool.proficiency || 0) <= 0 || (pool.ability || 0) >= MAX_DICE_PER_TYPE) return;
+    setPool((p) => ({ ...p, proficiency: p.proficiency - 1, ability: (p.ability || 0) + 1 }));
   }
 
   function downgradeChallengeToDifficulty() {
-    setPool((p) => {
-      if ((p.challenge || 0) <= 0 || (p.difficulty || 0) >= MAX_DICE_PER_TYPE) return p;
-      return { ...p, challenge: p.challenge - 1, difficulty: (p.difficulty || 0) + 1 };
-    });
+    if (difficultyUpgradeStack.length > 0) {
+      const last = difficultyUpgradeStack[difficultyUpgradeStack.length - 1];
+      if (last === "convert") {
+        if ((pool.challenge || 0) <= 0) return;
+        setPool((p) => ({ ...p, challenge: p.challenge - 1, difficulty: (p.difficulty || 0) + 1 }));
+      } else {
+        if ((pool.difficulty || 0) <= 0) return;
+        setPool((p) => ({ ...p, difficulty: p.difficulty - 1 }));
+      }
+      setDifficultyUpgradeStack((st) => st.slice(0, -1));
+      return;
+    }
+    if ((pool.challenge || 0) <= 0 || (pool.difficulty || 0) >= MAX_DICE_PER_TYPE) return;
+    setPool((p) => ({ ...p, challenge: p.challenge - 1, difficulty: (p.difficulty || 0) + 1 }));
+  }
+
+  // Mirrors the click-time branching above, used to drive the buttons'
+  // disabled state so the UI never claims a click will do nothing when it
+  // actually would (or vice versa).
+  function canUpgradeAbility() {
+    if ((pool.ability || 0) > 0) return (pool.proficiency || 0) < MAX_DICE_PER_TYPE;
+    return (pool.ability || 0) < MAX_DICE_PER_TYPE;
+  }
+  function canDowngradeAbility() {
+    if (abilityUpgradeStack.length > 0) {
+      const last = abilityUpgradeStack[abilityUpgradeStack.length - 1];
+      return last === "convert" ? (pool.proficiency || 0) > 0 : (pool.ability || 0) > 0;
+    }
+    return (pool.proficiency || 0) > 0 && (pool.ability || 0) < MAX_DICE_PER_TYPE;
+  }
+  function canUpgradeDifficulty() {
+    if ((pool.difficulty || 0) > 0) return (pool.challenge || 0) < MAX_DICE_PER_TYPE;
+    return (pool.difficulty || 0) < MAX_DICE_PER_TYPE;
+  }
+  function canDowngradeDifficulty() {
+    if (difficultyUpgradeStack.length > 0) {
+      const last = difficultyUpgradeStack[difficultyUpgradeStack.length - 1];
+      return last === "convert" ? (pool.challenge || 0) > 0 : (pool.difficulty || 0) > 0;
+    }
+    return (pool.challenge || 0) > 0 && (pool.difficulty || 0) < MAX_DICE_PER_TYPE;
   }
 
   async function handleRoll() {
@@ -926,6 +1055,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
     const entry = {
       player: (playerName || "Unnamed").slice(0, 40),
       poolLabel: poolLabel(pool),
+      weaponNote: loadedWeaponNote || null,
       pool: { ...pool },
       rolls: result.rolls.map((r) => ({ die: r.die, symbols: r.symbols })),
       netSuccess: result.netSuccess,
@@ -1003,6 +1133,11 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
   return (
     <div className="relative overflow-hidden border" style={{ borderColor: "#3a3f42", background: "#16191b", boxShadow: "0 0 30px rgba(94,200,216,0.06)" }}>
       <div className="p-5 sm:p-7">
+        <div className="text-[11px] tracking-[0.25em] uppercase mb-1" style={{ color: "#5ec8d8" }}>SHARED SESSION TOOL</div>
+        <h1 className="text-2xl sm:text-3xl uppercase tracking-wide mb-4" style={{ color: "#e7e2d2", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }}>
+          Dice Roller
+        </h1>
+
         <InitiativeTracker initiative={initiative} />
         {partyDestiny && (
           <div className="border p-3 mb-4 flex items-center gap-6 flex-wrap" style={{ borderColor: "#ffb00055", background: "#ffb00009" }}>
@@ -1022,10 +1157,6 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
             </div>
           </div>
         )}
-        <div className="text-[11px] tracking-[0.25em] uppercase mb-1" style={{ color: "#5ec8d8" }}>SHARED SESSION TOOL</div>
-        <h1 className="text-2xl sm:text-3xl uppercase tracking-wide mb-4" style={{ color: "#e7e2d2", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }}>
-          Dice Roller
-        </h1>
 
         <div className="mb-4">
           <label className="text-[11px] tracking-[0.2em] uppercase block mb-1.5" style={{ color: "#8a8f93" }}>
@@ -1154,13 +1285,14 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={upgradeAbilityToProficiency}
-              disabled={(pool.ability || 0) <= 0 || (pool.proficiency || 0) >= MAX_DICE_PER_TYPE}
+              disabled={!canUpgradeAbility()}
+              title={(pool.ability || 0) <= 0 ? "No Ability dice left — adds an Ability die instead" : undefined}
               className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5"
               style={{
                 background: "linear-gradient(90deg, #6fae60 0%, #6fae60 50%, #e8c547 50%, #e8c547 100%)",
                 color: "#101315",
-                opacity: (pool.ability || 0) <= 0 || (pool.proficiency || 0) >= MAX_DICE_PER_TYPE ? 0.4 : 1,
-                cursor: (pool.ability || 0) <= 0 || (pool.proficiency || 0) >= MAX_DICE_PER_TYPE ? "not-allowed" : "pointer",
+                opacity: canUpgradeAbility() ? 1 : 0.4,
+                cursor: canUpgradeAbility() ? "pointer" : "not-allowed",
                 fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
@@ -1170,27 +1302,28 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
             </button>
             <button
               onClick={downgradeProficiencyToAbility}
-              disabled={(pool.proficiency || 0) <= 0 || (pool.ability || 0) >= MAX_DICE_PER_TYPE}
+              disabled={!canDowngradeAbility()}
               title="Undo: Proficiency → Ability"
               className="w-7 h-7 flex items-center justify-center text-[13px] leading-none"
               style={{
                 border: "1px solid #3a3f42",
                 color: "#8a8f93",
-                opacity: (pool.proficiency || 0) <= 0 || (pool.ability || 0) >= MAX_DICE_PER_TYPE ? 0.35 : 1,
-                cursor: (pool.proficiency || 0) <= 0 || (pool.ability || 0) >= MAX_DICE_PER_TYPE ? "not-allowed" : "pointer",
+                opacity: canDowngradeAbility() ? 1 : 0.35,
+                cursor: canDowngradeAbility() ? "pointer" : "not-allowed",
               }}
             >
               ↺
             </button>
             <button
               onClick={upgradeDifficultyToChallenge}
-              disabled={(pool.difficulty || 0) <= 0 || (pool.challenge || 0) >= MAX_DICE_PER_TYPE}
+              disabled={!canUpgradeDifficulty()}
+              title={(pool.difficulty || 0) <= 0 ? "No Difficulty dice left — adds a Difficulty die instead" : undefined}
               className="text-[11px] tracking-[0.1em] uppercase px-3 py-1.5"
               style={{
                 background: "linear-gradient(90deg, #8a5ec8 0%, #8a5ec8 50%, #c23b3b 50%, #c23b3b 100%)",
                 color: "#f5f5f0",
-                opacity: (pool.difficulty || 0) <= 0 || (pool.challenge || 0) >= MAX_DICE_PER_TYPE ? 0.4 : 1,
-                cursor: (pool.difficulty || 0) <= 0 || (pool.challenge || 0) >= MAX_DICE_PER_TYPE ? "not-allowed" : "pointer",
+                opacity: canUpgradeDifficulty() ? 1 : 0.4,
+                cursor: canUpgradeDifficulty() ? "pointer" : "not-allowed",
                 fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
@@ -1200,14 +1333,14 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
             </button>
             <button
               onClick={downgradeChallengeToDifficulty}
-              disabled={(pool.challenge || 0) <= 0 || (pool.difficulty || 0) >= MAX_DICE_PER_TYPE}
+              disabled={!canDowngradeDifficulty()}
               title="Undo: Challenge → Difficulty"
               className="w-7 h-7 flex items-center justify-center text-[13px] leading-none"
               style={{
                 border: "1px solid #3a3f42",
                 color: "#8a8f93",
-                opacity: (pool.challenge || 0) <= 0 || (pool.difficulty || 0) >= MAX_DICE_PER_TYPE ? 0.35 : 1,
-                cursor: (pool.challenge || 0) <= 0 || (pool.difficulty || 0) >= MAX_DICE_PER_TYPE ? "not-allowed" : "pointer",
+                opacity: canDowngradeDifficulty() ? 1 : 0.35,
+                cursor: canDowngradeDifficulty() ? "pointer" : "not-allowed",
               }}
             >
               ↺
@@ -1225,7 +1358,7 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
               Roll
             </button>
             <button
-              onClick={() => { setPool(EMPTY_POOL); setLoadedLabel(null); setSelectedDifficultyPreset(null); setSelectedManeuver(null); }}
+              onClick={() => { setPool(EMPTY_POOL); setLoadedLabel(null); setSelectedDifficultyPreset(null); setSelectedManeuver(null); setAbilityUpgradeStack([]); setDifficultyUpgradeStack([]); }}
               className="text-[11px] tracking-[0.15em] uppercase px-4 py-2 border"
               style={{ color: "#8a8f93", borderColor: "#3a3f42" }}
             >
@@ -1299,6 +1432,17 @@ function DiceRollerPanel({ playerName, setPlayerName, preset, partyDestiny, dest
                     <span style={{ color: "#5ec8d8" }}>{entry.player}</span>
                     <span style={{ color: "#5a5f62" }}>{new Date(entry.ts).toLocaleTimeString()}</span>
                   </div>
+                  {entry.weaponNote && (
+                    <div className="mb-1.5">
+                      <span
+                        className="text-[10px] tracking-wide px-1.5 py-0.5 inline-block"
+                        style={{ background: "#2a2e31", color: "#8a8f93" }}
+                        title="Weapon Special"
+                      >
+                        {entry.weaponNote}
+                      </span>
+                    </div>
+                  )}
                   {entry.rolls && entry.rolls.length > 0 ? (
                     <div className="mb-1.5"><RollResultsStrip rolls={entry.rolls} /></div>
                   ) : entry.pool && (
@@ -1700,6 +1844,16 @@ function applyLiveOverlay(character, live) {
   const w = hasLive && liveId && live.wounds && live.wounds[liveId] != null ? live.wounds[liveId] : null;
   const s = hasLive && liveId && live.strain && live.strain[liveId] != null ? live.strain[liveId] : null;
   const d = hasLive && live.destiny ? live.destiny : null;
+  // Critical injuries tracked live are just Table 6-10 result numbers (the
+  // GM/chat records them as they're rolled, without waiting for a
+  // consolidation pass) — resolved here to the same "NN - Name" text the
+  // static ledger.json entries use, so both render identically. Additive
+  // only: these are appended alongside whatever's already in
+  // vitals.criticalInjuries, never replacing it.
+  const liveCritNums =
+    hasLive && liveId && live.criticalInjuries && Array.isArray(live.criticalInjuries[liveId])
+      ? live.criticalInjuries[liveId]
+      : [];
 
   const vitals = character.vitals || {};
   const staticWounds = vitals.wounds || {};
@@ -1718,6 +1872,7 @@ function applyLiveOverlay(character, live) {
     woundsLive: w != null,
     strainLive: s != null,
     destinyLive: !!d,
+    criticalInjuriesLive: liveCritNums.map((n) => criticalInjuryTextFromNumber(n)),
   };
 }
 
@@ -1745,13 +1900,18 @@ export default function CampaignDashboard() {
   // re-applies it instead of bailing out on an unchanged dependency.
   const [dicePreset, setDicePreset] = useState(null);
   const diceSeedRef = useRef(0);
-  function loadSkillIntoRoller(skill, characterName) {
+  // weaponNote (optional) is a weapon's Special text (e.g. "Pierce 2,
+  // Vicious 1") — only passed when this preset came from clicking a weapon
+  // row on the character sheet, so it can be surfaced on the shared roll
+  // log entry the roll produces (see handleRoll/weaponNote below).
+  function loadSkillIntoRoller(skill, characterName, weaponNote) {
     const proficiency = Math.min(skill.rank, skill.characteristic);
     const ability = Math.max(skill.rank, skill.characteristic) - proficiency;
     diceSeedRef.current += 1;
     setDicePreset({
       pool: { ...EMPTY_POOL, proficiency, ability, boost: skill.boost || 0 },
       label: `${characterName} — ${skill.name}`,
+      weaponNote: weaponNote || null,
       nonce: diceSeedRef.current,
     });
     // Jumping to the roller from a skill click means "I'm rolling as this
@@ -1903,7 +2063,8 @@ export default function CampaignDashboard() {
   const destiny = overlay.destiny || { light: 0, dark: 0 };
   const destinyUnknown = !overlay.destiny;
   const xp = active.xp || { available: 0, total: 0 };
-  const crits = v.criticalInjuries || [];
+  const staticCrits = v.criticalInjuries || [];
+  const liveCrits = overlay.criticalInjuriesLive || [];
   const inv = active.inventory || [];
   const mo = active.motivationObligation || {};
   const obligation = mo.obligation || {};
@@ -2218,7 +2379,8 @@ export default function CampaignDashboard() {
                     <tr style={{ borderBottom: "1px solid #2a2e31" }}>
                       <td className="py-1 pb-2 text-[10px] tracking-[0.2em] uppercase" style={{ color: "#5a5f62" }}>Critical Injuries</td>
                       {party.map((p, i) => {
-                        const n = (p.vitals?.criticalInjuries || []).length;
+                        const liveCount = partyOverlays[i]?.criticalInjuriesLive?.length || 0;
+                        const n = (p.vitals?.criticalInjuries || []).length + liveCount;
                         return (
                           <td
                             key={i}
@@ -2234,6 +2396,7 @@ export default function CampaignDashboard() {
                                   <span key={k} className="w-2.5 h-2.5 inline-block" style={{ background: "#c23b3b" }} />
                                 ))}
                                 {n > 5 && <span className="text-[12px] mono-num" style={{ color: "#c23b3b" }}>+{n - 5}</span>}
+                                {liveCount > 0 && <span className="ml-1" style={{ color: "#6fae60" }}>●</span>}
                               </span>
                             )}
                           </td>
@@ -2336,7 +2499,56 @@ export default function CampaignDashboard() {
             </div>
 
             <>
-                <div className="grid sm:grid-cols-2 gap-x-8">
+                {(mo.motivation || obligation.type) && (
+                  <div className="space-y-3 mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
+                    {mo.motivation && (
+                      <Stat label="Motivation"><span className="text-[13px]" style={{ color: "#e7e2d2" }}>{mo.motivation}</span></Stat>
+                    )}
+                    {obligation.type && (
+                      <Stat label="Obligation">
+                        <span className="text-[13px]" style={{ color: "#e7e2d2" }}>
+                          {obligation.type} <span className="mono-num" style={{ color: "#ffb000" }}>({obligation.value})</span>
+                          {obligation.note ? ` — ${obligation.note}` : ""}
+                        </span>
+                      </Stat>
+                    )}
+                  </div>
+                )}
+
+                <InitiativeTracker initiative={live.initiative} />
+
+                <div className="border p-3 mb-4 flex items-center gap-6 flex-wrap" style={{ borderColor: "#ffb00055", background: "#ffb00009" }}>
+                  <div className="text-[11px] tracking-[0.2em] uppercase flex items-center gap-1.5" style={{ color: "#ffb000" }}>
+                    Destiny Pool (party)
+                    {overlay.destinyLive && (
+                      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: "#6fae60" }} />
+                    )}
+                  </div>
+                  {destinyUnknown ? (
+                    <span className="text-[11px] italic" style={{ color: "#5a5f62" }}>No live data</span>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1.5">
+                        <DestinyTokens count={destiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
+                        <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <DestinyTokens count={destiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
+                        <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-x-8 mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
+                  <div>
+                    <Stat label="Experience — unspent">
+                      <span className="text-xl mono-num" style={{ color: "#e7e2d2" }}>{xp.available}</span>
+                    </Stat>
+                    <Stat label="Credits">
+                      <span className="text-xl mono-num" style={{ color: "#ffb000" }}>{(active.credits ?? 0).toLocaleString()}</span>
+                    </Stat>
+                  </div>
                   <div>
                     <Stat label={`Wounds — ${wounds.current ?? "—"} / ${wounds.threshold}`} live={overlay.woundsLive}>
                       <div className="relative">
@@ -2354,71 +2566,81 @@ export default function CampaignDashboard() {
                       <span className="text-xl mono-num" style={{ color: "#e7e2d2" }}>{v.soak ?? "—"}</span>
                     </Stat>
                   </div>
-                  <div>
-                    <Stat label="Destiny Pool (party)" live={overlay.destinyLive}>
-                      {destinyUnknown ? (
-                        <span className="text-[11px] italic" style={{ color: "#5a5f62" }}>No live data</span>
-                      ) : (
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1.5">
-                            <DestinyTokens count={destiny.light} src={BLUE_TOKEN} alt="Light Side Destiny Point" sweepActive={destinyLightSweepOn} sweepDir={lc.destinyLightDir} sweepColor="#8fd3f4" />
-                            <span className="text-[11px]" style={{ color: "#8a8f93" }}>light</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <DestinyTokens count={destiny.dark} src={RED_TOKEN} alt="Dark Side Destiny Point" sweepActive={destinyDarkSweepOn} sweepDir={lc.destinyDarkDir} sweepColor="#c23b3b" />
-                            <span className="text-[11px]" style={{ color: "#8a8f93" }}>dark</span>
-                          </div>
-                        </div>
-                      )}
-                    </Stat>
-                    <Stat label="Experience — unspent">
-                      <span className="text-xl mono-num" style={{ color: "#e7e2d2" }}>{xp.available}</span>
-                    </Stat>
-                    <Stat label="Credits">
-                      <span className="text-xl mono-num" style={{ color: "#ffb000" }}>{(active.credits ?? 0).toLocaleString()}</span>
-                    </Stat>
-                  </div>
                 </div>
 
-                {crits.length > 0 && (
-                  <div className="mt-2 mb-5 p-3 border" style={{ borderColor: "#c23b3b44", background: "#c23b3b11" }}>
-                    <div className="text-[11px] tracking-[0.2em] uppercase mb-1.5" style={{ color: "#c23b3b" }}>Critical Injuries</div>
+                {(staticCrits.length > 0 || liveCrits.length > 0) && (
+                  <div className="mb-5 p-3 border" style={{ borderColor: "#c23b3b44", background: "#c23b3b11" }}>
+                    <div className="text-[11px] tracking-[0.2em] uppercase mb-1.5 flex items-center gap-1.5" style={{ color: "#c23b3b" }}>
+                      Critical Injuries
+                      {liveCrits.length > 0 && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full inline-block"
+                          style={{ background: "#6fae60", boxShadow: "0 0 4px #6fae6099" }}
+                          title="Live-tracked — not yet consolidated into the ledger"
+                        />
+                      )}
+                    </div>
                     <div className="space-y-1.5">
-                      {crits.map((crit, i) => <CriticalInjuryTile key={i} text={crit} />)}
+                      {staticCrits.map((crit, i) => <CriticalInjuryTile key={`s${i}`} text={crit} />)}
+                      {liveCrits.map((crit, i) => <CriticalInjuryTile key={`l${i}`} text={crit} live />)}
                     </div>
                   </div>
                 )}
 
-                <div className="pt-4 border-t" style={{ borderColor: "#2a2e31" }}>
-                  <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Gear &amp; Inventory</div>
-                  <div className="space-y-2">
-                    {inv.length === 0 && <span className="text-[13px]" style={{ color: "#5a5f62" }}>No items recorded.</span>}
-                    {inv.map((item, i) => (
-                      <div key={i} className="text-[13px] pb-2" style={{ borderBottom: i < inv.length - 1 ? "1px solid #2a2e31" : "none" }}>
-                        <div style={{ color: "#e7e2d2" }}>{item.name}</div>
-                        {item.note && <div style={{ color: "#5ec8d8" }} className="text-[12px] mt-0.5">{item.note}</div>}
-                      </div>
-                    ))}
-                  </div>
+                <div className="mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
+                  <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Weapons</div>
+                  {weapons.length === 0 ? (
+                    <span className="text-[13px]" style={{ color: "#5a5f62" }}>No weapons recorded.</span>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[12px]" style={{ color: "#e7e2d2" }}>
+                        <thead>
+                          <tr style={{ color: "#5a5f62" }}>
+                            <th className="text-left font-normal pb-1">Name</th>
+                            <th className="text-left font-normal pb-1">Skill</th>
+                            <th className="text-left font-normal pb-1">Dmg</th>
+                            <th className="text-left font-normal pb-1">Crit</th>
+                            <th className="text-left font-normal pb-1">Range</th>
+                            <th className="text-left font-normal pb-1">Special</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {weapons.map((w, i) => {
+                            const weaponSkill = skills.find((s) => s.name === w.skill);
+                            return (
+                              <tr
+                                key={i}
+                                style={{ borderTop: "1px solid #2a2e31" }}
+                                className={weaponSkill ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}
+                                onClick={weaponSkill ? () => loadSkillIntoRoller(weaponSkill, active.name || "Unknown", w.special) : undefined}
+                                title={weaponSkill ? `Load ${w.skill} into Dice Roller` : undefined}
+                              >
+                                <td className="py-1.5 pr-2">{w.name}</td>
+                                <td className="py-1.5 pr-2" style={{ color: "#8a8f93" }}>{w.skill}</td>
+                                <td className="py-1.5 pr-2 mono-num">{w.damage}</td>
+                                <td className="py-1.5 pr-2 mono-num">{w.crit}</td>
+                                <td className="py-1.5 pr-2">{w.range}</td>
+                                <td className="py-1.5" style={{ color: "#5ec8d8" }}>{w.special}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </>
 
-            <>
-                {(mo.motivation || obligation.type) && (
-                  <div className="space-y-3 mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
-                    {mo.motivation && (
-                      <Stat label="Motivation"><span className="text-[13px]" style={{ color: "#e7e2d2" }}>{mo.motivation}</span></Stat>
-                    )}
-                    {obligation.type && (
-                      <Stat label="Obligation">
-                        <span className="text-[13px]" style={{ color: "#e7e2d2" }}>
-                          {obligation.type} <span className="mono-num" style={{ color: "#ffb000" }}>({obligation.value})</span>
-                          {obligation.note ? ` — ${obligation.note}` : ""}
-                        </span>
-                      </Stat>
-                    )}
-                  </div>
-                )}
+                <div className="mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
+                  <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Armor</div>
+                  {armor.name ? (
+                    <div className="text-[13px] flex justify-between">
+                      <span style={{ color: "#e7e2d2" }}>{armor.name}</span>
+                      <span style={{ color: "#8a8f93" }}>+{armor.soakBonus ?? 0} Soak · Defense (R/M) {activeDefense.ranged}/{activeDefense.melee}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[13px]" style={{ color: "#5a5f62" }}>No armor recorded.</span>
+                  )}
+                </div>
 
                 <div className="mb-5 pb-5 border-b" style={{ borderColor: "#2a2e31" }}>
                   <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Characteristics</div>
@@ -2497,58 +2719,25 @@ export default function CampaignDashboard() {
                 </div>
 
                 <div>
-                  <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Weapons</div>
-                  {weapons.length === 0 ? (
-                    <span className="text-[13px]" style={{ color: "#5a5f62" }}>No weapons recorded.</span>
+                  <div className="text-[11px] tracking-[0.2em] uppercase mb-1" style={{ color: "#8a8f93" }}>Inventory</div>
+                  <div className="text-[11px] mb-2" style={{ color: "#5a5f62" }}>Weapons and armor are listed above, not repeated here.</div>
+                  {inv.length === 0 ? (
+                    <span className="text-[13px]" style={{ color: "#5a5f62" }}>No items recorded.</span>
                   ) : (
-                    <div className="overflow-x-auto mb-4">
-                      <table className="w-full text-[12px]" style={{ color: "#e7e2d2" }}>
-                        <thead>
-                          <tr style={{ color: "#5a5f62" }}>
-                            <th className="text-left font-normal pb-1">Name</th>
-                            <th className="text-left font-normal pb-1">Skill</th>
-                            <th className="text-left font-normal pb-1">Dmg</th>
-                            <th className="text-left font-normal pb-1">Crit</th>
-                            <th className="text-left font-normal pb-1">Range</th>
-                            <th className="text-left font-normal pb-1">Special</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {weapons.map((w, i) => {
-                            const weaponSkill = skills.find((s) => s.name === w.skill);
-                            return (
-                              <tr
-                                key={i}
-                                style={{ borderTop: "1px solid #2a2e31" }}
-                                className={weaponSkill ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}
-                                onClick={weaponSkill ? () => loadSkillIntoRoller(weaponSkill, active.name || "Unknown") : undefined}
-                                title={weaponSkill ? `Load ${w.skill} into Dice Roller` : undefined}
-                              >
-                                <td className="py-1.5 pr-2">{w.name}</td>
-                                <td className="py-1.5 pr-2" style={{ color: "#8a8f93" }}>{w.skill}</td>
-                                <td className="py-1.5 pr-2 mono-num">{w.damage}</td>
-                                <td className="py-1.5 pr-2 mono-num">{w.crit}</td>
-                                <td className="py-1.5 pr-2">{w.range}</td>
-                                <td className="py-1.5" style={{ color: "#5ec8d8" }}>{w.special}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="space-y-2">
+                      {inv.map((item, i) => (
+                        <div key={i} className="text-[13px] pb-2" style={{ borderBottom: i < inv.length - 1 ? "1px solid #2a2e31" : "none" }}>
+                          <div style={{ color: "#e7e2d2" }}>{item.name}</div>
+                          {item.note && <div style={{ color: "#5ec8d8" }} className="text-[12px] mt-0.5">{item.note}</div>}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {armor.name && (
-                    <>
-                      <div className="text-[11px] tracking-[0.2em] uppercase mb-2" style={{ color: "#8a8f93" }}>Armor</div>
-                      <div className="text-[13px] flex justify-between">
-                        <span style={{ color: "#e7e2d2" }}>{armor.name}</span>
-                        <span style={{ color: "#8a8f93" }}>+{armor.soakBonus ?? 0} Soak · Defense (R/M) {activeDefense.ranged}/{activeDefense.melee}</span>
-                      </div>
-                    </>
                   )}
                 </div>
 
-                <GMNoteBox characterName={active.name} />
+                <div className="pt-5 mt-5 border-t" style={{ borderColor: "#2a2e31" }}>
+                  <GMNoteBox characterName={active.name} />
+                </div>
               </>
           </div>
         </div>
